@@ -2,7 +2,7 @@
 
 import { Product } from '@/types';
 import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Check, X } from 'lucide-react';
 import Image from 'next/image';
 
 interface SwipeCardProps {
@@ -67,17 +67,17 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
                 {/* LIKE Overlay */}
                 <motion.div
                     style={{ opacity: likeOpacity }}
-                    className="absolute top-8 left-8 border-4 border-green-500 rounded-lg px-4 py-2 -rotate-12 z-10"
+                    className="absolute top-8 left-8 bg-green-500 rounded-full p-4 shadow-lg -rotate-12 z-10"
                 >
-                    <span className="text-3xl font-bold text-green-500 uppercase">Like</span>
+                    <Check size={48} className="text-white" strokeWidth={4} />
                 </motion.div>
 
                 {/* NOPE Overlay */}
                 <motion.div
                     style={{ opacity: nopeOpacity }}
-                    className="absolute top-8 right-8 border-4 border-red-500 rounded-lg px-4 py-2 rotate-12 z-10"
+                    className="absolute top-8 right-8 bg-red-500 rounded-full p-4 shadow-lg rotate-12 z-10"
                 >
-                    <span className="text-3xl font-bold text-red-500 uppercase">Nope</span>
+                    <X size={48} className="text-white" strokeWidth={4} />
                 </motion.div>
             </div>
 
