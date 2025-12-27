@@ -42,7 +42,7 @@ export function StickyFilterBar({ filters, onFilterChange, onProfileClick, wishl
                             else if (val === 'high') onFilterChange({ minPrice: 100, maxPrice: 10000 });
                             else onFilterChange({ minPrice: 0, maxPrice: 10000 });
                         }}
-                        className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
+                        className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0 w-[80px] text-center"
                     >
                         <option value="all">Price</option>
                         <option value="low">Under $25</option>
@@ -57,7 +57,7 @@ export function StickyFilterBar({ filters, onFilterChange, onProfileClick, wishl
                             const val = parseFloat(e.target.value);
                             onFilterChange({ minRating: val, maxRating: 5.0 });
                         }}
-                        className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
+                        className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0 w-[80px] text-center"
                     >
                         <option value="0">Rating</option>
                         <option value="3.5">3.5+</option>
@@ -69,7 +69,7 @@ export function StickyFilterBar({ filters, onFilterChange, onProfileClick, wishl
                     <select
                         value={filters.minReviews || 0}
                         onChange={(e) => onFilterChange({ minReviews: Number(e.target.value) })}
-                        className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
+                        className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0 w-[80px] text-center"
                     >
                         <option value="0">Reviews</option>
                         <option value="100">100+</option>

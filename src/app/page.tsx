@@ -131,7 +131,7 @@ export default function Home() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col items-center justify-start pt-32 pb-4 px-4 w-full relative">
+      <div className="flex-1 flex flex-col items-center justify-start pt-20 pb-4 px-4 w-full relative">
         <SwipeDeck
           ref={swipeDeckRef}
           products={products}
