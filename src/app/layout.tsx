@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   },
 };
 
+import { Providers } from '@/components/Providers';
+
+// ... (keep existing imports)
+
 export default function RootLayout({
   children,
 }: {
@@ -21,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={cn(inter.className, "bg-zinc-950 text-white min-h-screen flex flex-col overflow-hidden")}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

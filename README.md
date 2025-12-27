@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vibe 🎁
 
-## Getting Started
+**Vibe** is a Tinder-style gift discovery application that makes finding the perfect gift addictive and effortless. Browse through curated products, swipe right to save them to your wishlist, and let the recommendation engine learn your "vibe" over time.
 
-First, run the development server:
+## ✨ Features
+
+-   **Tinder-style Swiping**: Use smooth, fluid gestures (Framer Motion) to discover interesting products.
+-   **Smart Content-Based Filtering**: The more you swipe, the better it gets. The app tracks your category preferences and weights your product feed accordingly.
+-   **Multi-Category Discovery**: Fetches real-time data across Tech, Home, Fashion, Wellness, Hobbies, and Workspace.
+-   **Personalized Accounts**: Sign in with Google to sync your wishlist and preferences across all your devices.
+-   **Persistent Backend**: Powered by PostgreSQL and Prisma for fast, reliable data storage.
+-   **Real-Time Data**: Integrates with the Amazon Real-Time Data API for up-to-date pricing and ratings.
+
+## 🛠️ Technical Stack
+
+-   **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+-   **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
+-   **Animations**: [Framer Motion](https://www.framer.com/motion/)
+-   **Database**: PostgreSQL
+-   **ORM**: [Prisma](https://www.prisma.io/)
+-   **Authentication**: [NextAuth.js](https://next-auth.js.org/) (Google Provider)
+-   **Icons**: [Lucide React](https://lucide.dev/)
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+
+-   Node.js 18.x or later
+-   A PostgreSQL database (Supabase, Neon, or Vercel Postgres)
+-   A RapidAPI Key for [Real-Time Amazon Data](https://rapidapi.com/rockosrockos/api/real-time-amazon-data)
+-   Google OAuth Credentials (from Google Cloud Console)
+
+### 2. Environment Variables
+
+Create a `.env` file in the root directory and add the following:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Database connection string
+DATABASE_URL="postgresql://user:password@host:port/database"
+
+# NextAuth configuration
+NEXTAUTH_SECRET="your_secret_generated_via_openssl"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Google OAuth
+GOOGLE_CLIENT_ID="your_google_id"
+GOOGLE_CLIENT_SECRET="your_google_secret"
+
+# Amazon API
+RAPIDAPI_KEY="your_rapid_api_key"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Install dependencies
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Push database schema
+npx prisma db push
 
-## Learn More
+# Run development server
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) to start swiping!
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📜 Future Roadmap
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Check out our [IDEAS.md](./IDEAS.md) for planned features including group gift splitting, popularity-based frequency, and social integration.

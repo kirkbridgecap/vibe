@@ -6,6 +6,7 @@ import { StickyFilterBar } from '@/components/StickyFilterBar';
 import { SwipeDeck, SwipeDeckRef } from '@/components/SwipeDeck';
 import { WishlistDrawer } from '@/components/WishlistDrawer';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useUserData } from '@/hooks/useUserData';
 import { Menu, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -18,9 +19,17 @@ export default function Home() {
     maxPrice: 10000,
   });
 
-  const [wishlist, setWishlist] = useLocalStorage<Product[]>('giftpulse-wishlist', []);
-  const [rejectedIds, setRejectedIds] = useLocalStorage<string[]>('giftpulse-rejected', []);
-  const [categoryScores, setCategoryScores] = useLocalStorage<Record<string, number>>('giftpulse-scores', {});
+  const {
+    wishlist,
+    categoryScores,
+    rejectedIds,
+    setRejectedIds,
+    addToWishlist,
+    removeFromWishlist,
+    clearWishlist,
+    updateCategoryScores
+  } = useUserData();
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Refs
@@ -62,14 +71,14 @@ export default function Home() {
   const handleSwipeRight = (product: Product) => {
     // Avoid duplicates
     if (!wishlist.find(p => p.id === product.id)) {
-      setWishlist(prev => [...prev, product]);
+      addToWishlist(product);
     }
 
     // Update Category Score (Boost liked category)
-    setCategoryScores(prev => ({
-      ...prev,
-      [product.category]: (prev[product.category] || 1) + 1
-    }));
+    updateCategoryScores({
+      ...categoryScores,
+      [product.category]: (categoryScores[product.category] || 1) + 1
+    });
 
     // Remove from main state to keep in sync
     setProducts(prev => prev.filter(p => p.id !== product.id));
@@ -79,16 +88,16 @@ export default function Home() {
     setRejectedIds(prev => [...prev, product.id]);
 
     // Update Category Score (Slight penalty for noped category, but don't go below 0.1)
-    setCategoryScores(prev => ({
-      ...prev,
-      [product.category]: Math.max((prev[product.category] || 1) - 0.5, 0.1)
-    }));
+    updateCategoryScores({
+      ...categoryScores,
+      [product.category]: Math.max((categoryScores[product.category] || 1) - 0.5, 0.1)
+    });
 
     setProducts(prev => prev.filter(p => p.id !== product.id));
   };
 
   const handleRemoveFromWishlist = (id: string) => {
-    setWishlist(prev => prev.filter(p => p.id !== id));
+    removeFromWishlist(id);
   };
 
   // Keyboard Navigation
@@ -158,7 +167,7 @@ export default function Home() {
         onClose={() => setIsDrawerOpen(false)}
         wishlist={wishlist}
         onRemove={handleRemoveFromWishlist}
-        onClear={() => setWishlist([])}
+        onClear={clearWishlist}
       />
     </main>
   );

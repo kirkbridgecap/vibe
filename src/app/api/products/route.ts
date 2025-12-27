@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { CATEGORIES } from '@/lib/categories';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../auth/[...nextauth]/route";
+import { prisma } from "@/lib/prisma";
 
 // Types
 interface Product {
@@ -116,13 +119,33 @@ export async function GET(request: Request) {
     // Preferences: JSON object { "tech": 2.0, "home": 0.5 }
     // We default to all categories having weight 1.0
     let userPreferences: Record<string, number> = {};
-    try {
-        const prefParam = searchParams.get('preferences');
-        if (prefParam) {
-            userPreferences = JSON.parse(prefParam);
+    // Preferences logic
+    const session = await getServerSession(authOptions);
+    // userPreferences is already declared above, reusing it.
+
+    if (session?.user?.id) {
+        // Authenticated: Fetch from DB
+        try {
+            const dbScores = await prisma.categoryScore.findMany({
+                where: { userId: session.user.id }
+            });
+            // Convert array to Record<string, number>
+            dbScores.forEach(s => {
+                userPreferences[s.category] = s.score;
+            });
+        } catch (e) {
+            console.error("Failed to fetch preferences from DB", e);
         }
-    } catch (e) {
-        console.warn("Failed to parse preferences", e);
+    } else {
+        // Guest: Read from URL
+        try {
+            const prefParam = searchParams.get('preferences');
+            if (prefParam) {
+                userPreferences = JSON.parse(prefParam);
+            }
+        } catch (e) {
+            console.warn("Failed to parse preferences", e);
+        }
     }
 
     let cache = getCache();
