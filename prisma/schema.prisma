@@ -104,3 +104,21 @@ model RejectedItem {
 
   @@unique([userId, productId])
 }
+
+model Product {
+  id           String   @id // ASIN
+  title        String
+  price        Float
+  currency     String   @default("USD")
+  imageUrl     String
+  link         String
+  category     String
+  isBestSeller Boolean  @default(false)
+  rating       Float?   @default(0)
+  reviews      Int?     @default(0)
+  
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@index([category])
+}
