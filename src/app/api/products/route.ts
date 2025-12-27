@@ -30,7 +30,8 @@ interface CacheData {
 // Configuration
 const RAPIDAPI_HOST = 'real-time-amazon-data.p.rapidapi.com';
 const CACHE_FILE_PATH = path.join(process.cwd(), 'data', 'amazon_cache.json');
-const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
+const MAX_ITEMS_PER_CATEGORY = 200;
 
 async function fetchFromRapidAPI(query: string, categoryId: string): Promise<Product[] | null> {
     const key = process.env.RAPIDAPI_KEY;
@@ -40,51 +41,56 @@ async function fetchFromRapidAPI(query: string, categoryId: string): Promise<Pro
         return null;
     }
 
-    // Using Search endpoint
-    const url = `https://${RAPIDAPI_HOST}/search?query=${encodeURIComponent(query)}&page=1&country=US&sort_by=RELEVANCE&product_condition=NEW`;
+    // We'll fetch 2 pages for better variety
+    const products: Product[] = [];
 
-    console.log(`Fetching from RapidAPI [${categoryId}]: ${url}`);
+    for (const page of [1, 2]) {
+        const url = `https://${RAPIDAPI_HOST}/search?query=${encodeURIComponent(query)}&page=${page}&country=US&sort_by=RELEVANCE&product_condition=NEW`;
 
-    try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'x-rapidapi-key': key,
-                'x-rapidapi-host': RAPIDAPI_HOST,
-            },
-        });
+        console.log(`Fetching from RapidAPI [${categoryId}] page ${page}: ${url}`);
 
-        if (!response.ok) {
-            throw new Error(`RapidAPI Error: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const rawProducts = data?.data?.products;
-
-        if (Array.isArray(rawProducts) && rawProducts.length > 0) {
-            return rawProducts.map((item: any) => {
-                const priceStr = item.product_price || '$0';
-                const price = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
-
-                return {
-                    id: item.asin,
-                    title: item.product_title,
-                    price: isNaN(price) ? 0 : price,
-                    currency: 'USD',
-                    imageUrl: item.product_photo,
-                    link: item.product_url,
-                    category: categoryId, // Tag with our internal category ID
-                    isBestSeller: item.is_best_seller || false,
-                    rating: parseFloat(item.product_star_rating || '0'),
-                    reviews: item.product_num_ratings || 0
-                };
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'x-rapidapi-key': key,
+                    'x-rapidapi-host': RAPIDAPI_HOST,
+                },
             });
+
+            if (!response.ok) {
+                console.error(`RapidAPI Error on page ${page}: ${response.status}`);
+                continue;
+            }
+
+            const data = await response.json();
+            const rawProducts = data?.data?.products;
+
+            if (Array.isArray(rawProducts)) {
+                rawProducts.forEach((item: any) => {
+                    const priceStr = item.product_price || '$0';
+                    const price = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
+
+                    products.push({
+                        id: item.asin,
+                        title: item.product_title,
+                        price: isNaN(price) ? 0 : price,
+                        currency: 'USD',
+                        imageUrl: item.product_photo,
+                        link: item.product_url,
+                        category: categoryId,
+                        isBestSeller: item.is_best_seller || false,
+                        rating: parseFloat(item.product_star_rating || '0'),
+                        reviews: item.product_num_ratings || 0
+                    });
+                });
+            }
+        } catch (error) {
+            console.error(`RapidAPI Fetch Failed for page ${page}:`, error);
         }
-        return null;
-    } catch (error) {
-        console.error('RapidAPI Fetch Failed:', error);
-        return null;
     }
+
+    return products.length > 0 ? products : null;
 }
 
 function getCache(): CacheData {
@@ -119,20 +125,14 @@ export async function GET(request: Request) {
     const minRating = parseFloat(searchParams.get('minRating') || '0');
     const maxRating = parseFloat(searchParams.get('maxRating') || '5');
 
-    // Preferences: JSON object { "tech": 2.0, "home": 0.5 }
-    // We default to all categories having weight 1.0
     let userPreferences: Record<string, number> = {};
-    // Preferences logic
     const session = await getServerSession(authOptions);
-    // userPreferences is already declared above, reusing it.
 
     if (session?.user?.id) {
-        // Authenticated: Fetch from DB
         try {
             const dbScores = await prisma.categoryScore.findMany({
                 where: { userId: session.user.id }
             });
-            // Convert array to Record<string, number>
             dbScores.forEach((s: any) => {
                 userPreferences[s.category] = s.score;
             });
@@ -140,7 +140,6 @@ export async function GET(request: Request) {
             console.error("Failed to fetch preferences from DB", e);
         }
     } else {
-        // Guest: Read from URL
         try {
             const prefParam = searchParams.get('preferences');
             if (prefParam) {
@@ -155,9 +154,6 @@ export async function GET(request: Request) {
     let hasUpdated = false;
     const now = Date.now();
 
-    // 1. SMART UPDATE STRATEGY
-    // Find ONE category that is either missing or stale (> 24h)
-    // We shuffle categories to avoid always updating the same one first if multiple are empty
     const shuffledCategories = [...CATEGORIES].sort(() => Math.random() - 0.5);
 
     for (const cat of shuffledCategories) {
@@ -165,16 +161,36 @@ export async function GET(request: Request) {
         const isStale = !cachedCat || (now - cachedCat.timestamp > CACHE_DURATION_MS);
 
         if (isStale) {
-            console.log(`Refreshing category: ${cat.label}`);
-            const newProducts = await fetchFromRapidAPI(cat.query, cat.id);
+            // Pick a random query from the available ones for this category
+            const randomQuery = cat.queries[Math.floor(Math.random() * cat.queries.length)];
+            console.log(`Refreshing category: ${cat.label} with query "${randomQuery}"`);
+
+            const newProducts = await fetchFromRapidAPI(randomQuery, cat.id);
 
             if (newProducts) {
+                // MERGE STRATEGY: Combine new products with old ones and deduplicate
+                const existingData = cachedCat?.data || [];
+                const combined = [...newProducts, ...existingData];
+
+                // Deduplicate by ASIN
+                const uniqueMap = new Map();
+                combined.forEach(p => uniqueMap.set(p.id, p));
+
+                let uniqueProducts = Array.from(uniqueMap.values());
+
+                // Shuffle unique products so they don't always appear in the same order in the cache
+                uniqueProducts = uniqueProducts.sort(() => Math.random() - 0.5);
+
+                // Cap the size
+                if (uniqueProducts.length > MAX_ITEMS_PER_CATEGORY) {
+                    uniqueProducts = uniqueProducts.slice(0, MAX_ITEMS_PER_CATEGORY);
+                }
+
                 cache[cat.id] = {
                     timestamp: now,
-                    data: newProducts
+                    data: uniqueProducts
                 };
                 hasUpdated = true;
-                // CRITICAL: Only update ONE category per request to save API quota
                 break;
             }
         }

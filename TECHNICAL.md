@@ -60,6 +60,13 @@ The app maintains separate cache buckets for 6 distinct gift categories (Tech, F
 ### 2. Global deduplication
 The app tracks `RejectedIds` (Nopes) and `WishlistIds` (Likes) to ensure that once a user has interacted with a product, it is filtered out of their feed permanently, preventing redundant "swipes."
 
+### 3. Variability & Growth (Scaling for Power Users)
+To prevent the "pool" from feeling static for frequent swipers, the engine uses:
+-   **Multi-Query Rotation**: Each category now contains an array of distinct search queries (e.g., "smart kitchen" vs "aesthetic decor"). The API rotates these queries randomly during refreshes.
+-   **Deep Crawling**: Fetches multiple pages of results per API call to broaden the discovery pool.
+-   **Cache Merging & Deduplication**: Instead of overwriting, the backend merges new results with existing cached items, maintaining a diverse library of up to 200 unique items per category.
+-   **Weighted Probabilistic Shuffle**: Ensures that even if a category is "liked," users still see a healthy mix of other categories to maintain "serendipity."
+
 ---
 
 ## 🔄 Hybrid Data Sync Model

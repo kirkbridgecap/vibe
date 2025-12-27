@@ -1,14 +1,17 @@
 export interface Category {
     id: string;
     label: string;
-    query: string; // Search query for Amazon API
+    queries: string[]; // Multiple search queries for variety
 }
 
 export const CATEGORIES: Category[] = [
-    { id: 'tech', label: 'Tech & Gadgets', query: 'cool tech gadgets electronics' },
-    { id: 'home', label: 'Home & Living', query: 'unique home decor kitchen gadgets' },
-    { id: 'fashion', label: 'Style & Accessories', query: 'trendy fashion accessories jewelry' },
-    { id: 'wellness', label: 'Self Care', query: 'wellness self care relaxation gifts' },
-    { id: 'hobbies', label: 'Hobbies & Games', query: 'fun board games hobbies diy kits' },
-    { id: 'workspace', label: 'Workspace', query: 'aesthetic desk accessories office' },
+    { id: 'tech', label: 'Tech & Gadgets', queries: ['cool tech gadgets electronics', 'innovative smart home gadgets', 'funny office tech'] },
+    { id: 'home', label: 'Home & Living', queries: ['unique home decor kitchen gadgets', 'cozy aesthetic room decor', 'smart kitchen appliances'] },
+    { id: 'fashion', label: 'Style & Accessories', queries: ['trendy fashion accessories jewelry', 'minimalist watches sunglasses', 'unique leather goods'] },
+    { id: 'wellness', label: 'Self Care', queries: ['wellness self care relaxation gifts', 'spa gift sets meditation', 'healthy lifestyle accessories'] },
+    { id: 'hobbies', label: 'Hobbies & Games', queries: ['fun board games hobbies diy kits', 'unique collectibles gaming gears', 'outdoor adventure equipment'] },
+    { id: 'workspace', label: 'Workspace', queries: ['aesthetic desk accessories office', 'ergonomic workspace upgrades', 'productivity tools and stationary'] },
+    { id: 'outdoors', label: 'Outdoors', queries: ['camping gear outdoor essentials', 'portable travel gadgets', 'survival and exploration kits'] },
+    { id: 'creative', label: 'Creative', queries: ['art supplies creative kits', 'music gear instruments', 'photography and vlog tools'] },
+    { id: 'pets', label: 'Pets', queries: ['interesting pet gadgets toys', 'high tech pet accessories', 'unique pet lover gifts'] }
 ];
