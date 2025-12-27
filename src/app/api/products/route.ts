@@ -156,6 +156,8 @@ export async function GET(request: Request) {
 
     const shuffledCategories = [...CATEGORIES].sort(() => Math.random() - 0.5);
 
+    let updatesInThisRequest = 0;
+
     for (const cat of shuffledCategories) {
         const cachedCat = cache[cat.id];
         const isStale = !cachedCat || (now - cachedCat.timestamp > CACHE_DURATION_MS);
@@ -191,7 +193,21 @@ export async function GET(request: Request) {
                     data: uniqueProducts
                 };
                 hasUpdated = true;
-                break;
+                updatesInThisRequest++;
+
+                // SMART LIMITER:
+                // If we have very few active categories (Cold Start), keep fetching to populate the feed.
+                // If we have a healthy cache (>= 3 active categories), stop to save API quota.
+                const activeCategoriesCount = Object.values(cache).filter(c => c && (now - c.timestamp < CACHE_DURATION_MS)).length;
+
+                if (activeCategoriesCount >= 3) {
+                    break;
+                }
+
+                // Hard safety limit: Never fetch more than 3 categories in a single user request
+                if (updatesInThisRequest >= 3) {
+                    break;
+                }
             }
         }
     }
