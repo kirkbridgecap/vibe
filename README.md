@@ -4,10 +4,11 @@
 
 ## ✨ Features
 
--   **Tinder-style Swiping**: Use smooth, fluid gestures (Framer Motion) to discover interesting products.
+-   **Tinder-style Swiping**: Use smooth, fluid gestures (Framer Motion) with visual "Like/Nope" feedback to discover interesting products.
+-   **Expert Discovery Filters**: Sort and filter by **Price**, **Star Rating** (4.0+, 4.5+), and **Review Count** (100+, 1k+, 5k+) to find only the best products.
 -   **Smart Content-Based Filtering**: The more you swipe, the better it gets. The app tracks your category preferences and weights your product feed accordingly.
 -   **Multi-Category Discovery**: Fetches real-time data across Tech, Home, Fashion, Wellness, Hobbies, and Workspace.
--   **Personalized Accounts**: Sign in with Google to sync your wishlist and preferences across all your devices.
+-   **Unified Account Management**: A single profile header to manage your Google session and access your persistent wishlist.
 -   **Persistent Backend**: Powered by PostgreSQL and Prisma for fast, reliable data storage.
 -   **Real-Time Data**: Integrates with the Amazon Real-Time Data API for up-to-date pricing and ratings.
 

@@ -36,7 +36,10 @@ These scores are saved in the `CategoryScore` table for authenticated users or i
 
 ### B. The Weighted Shuffle Algorithm
 When a user requests products, the backend performs the following steps:
-1.  **Filtering**: Products are filtered based on the user's price range (`minPrice` to `maxPrice`).
+1.  **Hard Filters**: Products are strictly filtered based on:
+    -   **Price**: User-defined `minPrice` to `maxPrice`.
+    -   **Ratings**: Minimum star rating (e.g., 4.0+ stars).
+    -   **Social Proof**: Minimum review count (e.g., 1,000+ reviews).
 2.  **Scoring**: Each product is assigned a dynamic score using the formula:
     $$Score = (CategoryWeight) \times (RandomFactor + 0.5)$$
 3.  **Shuffle**: The products are sorted by this score in descending order.
@@ -72,3 +75,21 @@ Vibe allows for an "instant-start" guest experience while providing robust accou
 -   **Edge Compatible**: API routes are designed to run on Vercel's Edge/Serverless runtime.
 -   **Prisma Client Singleton**: Implemented to prevent "Too many connections" errors common in Serverless environments.
 -   **Image Optimization**: Uses Next.js Image component with restrictive hostname white-listing for optimized CDN delivery of Amazon product photos.
+
+---
+
+## 📱 UI & Responsive Design Strategy
+
+Vibe employs a custom "Mobile-First Rebalance" to maximize info-density and usability:
+
+### 1. Vertical Space Optimization
+On mobile devices (like iPhone 13/14/15 Pro), the app uses a **2:3 Card Aspect Ratio**. This allows the swipe deck to utilize the tall screens of modern smartphones while leaving ample breathing room for the header and footer navigation.
+
+### 2. Dual-Focus Layout
+Inside each card, the space is split **50/50** between the **Product Image** and the **Product Description**:
+-   **Image (Top 50%)**: Uses `object-contain` on a clean white background to make the product "pop."
+-   **Description (Bottom 50%)**: Features an overflow-aware typography system that scales font size based on title length, ensuring complex Amazon product names remain readable without being cut off.
+
+### 3. Visual Feedback
+Instead of text labels, high-visibility **Green Check** and **Red X** overlays provide instantaneous, non-linguistic feedback during gestures, improving the "game-like" feel of the discovery process.
+
