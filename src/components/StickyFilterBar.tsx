@@ -52,20 +52,17 @@ export function StickyFilterBar({ filters, onFilterChange, onProfileClick, wishl
 
                     {/* Rating Filter */}
                     <select
-                        value={filters.minRating === 4.5 ? '4.5-5.0' : filters.maxRating === 4.5 ? '4.0-4.5' : filters.minRating === 4 ? '4.0+' : 'any'}
+                        value={filters.minRating?.toString() || '0'}
                         onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '4.0+') onFilterChange({ minRating: 4.0, maxRating: 5.0 });
-                            else if (val === '4.0-4.5') onFilterChange({ minRating: 4.0, maxRating: 4.5 });
-                            else if (val === '4.5-5.0') onFilterChange({ minRating: 4.5, maxRating: 5.0 });
-                            else onFilterChange({ minRating: 0, maxRating: 5.0 });
+                            const val = parseFloat(e.target.value);
+                            onFilterChange({ minRating: val, maxRating: 5.0 });
                         }}
                         className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
                     >
-                        <option value="any">Any Rating</option>
-                        <option value="4.0+">4.0+</option>
-                        <option value="4.0-4.5">4.0 - 4.5</option>
-                        <option value="4.5-5.0">4.5 - 5.0</option>
+                        <option value="0">Any Rating</option>
+                        <option value="3.5">3.5+</option>
+                        <option value="4.0">4.0+</option>
+                        <option value="4.2">4.2+</option>
                     </select>
 
                     {/* Reviews Filter */}
