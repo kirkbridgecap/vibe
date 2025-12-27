@@ -83,7 +83,7 @@ Vibe allows for an "instant-start" guest experience while providing robust accou
 Vibe employs a custom "Mobile-First Rebalance" to maximize info-density and usability:
 
 ### 1. Vertical Space Optimization
-On mobile devices (like iPhone 13/14/15 Pro), the app uses a **2:3 Card Aspect Ratio**. This allows the swipe deck to utilize the tall screens of modern smartphones while leaving ample breathing room for the header and footer navigation.
+On mobile devices (like iPhone 13/14/15 Pro), the app uses a **2:3 Card Aspect Ratio** and **Dynamic Viewport Height (`h-[100dvh]`)**. The main content is anchored using `justify-start` with a strictly defined top-padding (`pt-32`). This prevents mobile browser address bars from shifting the vertical center and pushing cards into the fixed header.
 
 ### 2. Dual-Focus Layout
 Inside each card, the space is split **50/50** between the **Product Image** and the **Product Description**:

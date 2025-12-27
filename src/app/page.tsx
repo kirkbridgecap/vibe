@@ -121,7 +121,7 @@ export default function Home() {
   }, [products, loading, isDrawerOpen]);
 
   return (
-    <main className="flex flex-col h-screen w-full relative bg-zinc-950 overflow-hidden text-white">
+    <main className="flex flex-col h-[100dvh] w-full relative bg-zinc-950 overflow-hidden text-white">
 
       <StickyFilterBar
         filters={filters}
@@ -131,7 +131,7 @@ export default function Home() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col items-center justify-center pt-28 pb-10 px-4 w-full">
+      <div className="flex-1 flex flex-col items-center justify-start pt-32 pb-10 px-4 w-full">
         <SwipeDeck
           ref={swipeDeckRef}
           products={products}
