@@ -18,16 +18,18 @@ interface Product {
 }
 
 // Configuration
-const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const RAPIDAPI_HOST = 'real-time-amazon-data.p.rapidapi.com';
-
-if (!RAPIDAPI_KEY) {
-    throw new Error('RAPIDAPI_KEY is not defined in environment variables');
-}
 const CACHE_FILE_PATH = path.join(process.cwd(), 'data', 'amazon_cache.json');
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 async function fetchFromRapidAPI(query: string = 'interesting high-rated gifts', page: string = '1') {
+    const key = process.env.RAPIDAPI_KEY;
+
+    if (!key) {
+        console.error('RAPIDAPI_KEY is not defined in environment variables');
+        return null;
+    }
+
     // Using Search endpoint for better variety and more reliable results
     const url = `https://${RAPIDAPI_HOST}/search?query=${encodeURIComponent(query)}&page=${page}&country=US&sort_by=RELEVANCE&product_condition=NEW`;
 
@@ -37,7 +39,7 @@ async function fetchFromRapidAPI(query: string = 'interesting high-rated gifts',
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                'x-rapidapi-key': RAPIDAPI_KEY as string,
+                'x-rapidapi-key': key,
                 'x-rapidapi-host': RAPIDAPI_HOST,
             },
         });
