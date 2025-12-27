@@ -43,10 +43,9 @@ When a user requests products, the backend performs the following steps:
 2.  **Scoring**: Each product is assigned a dynamic score using the formula:
     $$Score = (CategoryWeight) \times (RandomFactor + 0.5)$$
 3.  **Shuffle**: The products are sorted by this score in descending order.
-
-**Why this works**:
--   By adding a `RandomFactor`, we ensure that the feed isn't 100% predictable. 
--   Liked categories appear significantly more often and higher up, but "Freshness" is maintained because any category *can* still win a high score occasionally.
+4.  **Spread Sort (Smart Interleaving)**: Finally, to prevent "clumping" (e.g., 5 tech items in a row), a greedy lookahead algorithm post-processes the list:
+    -   It builds the final feed by continually picking the highest-scoring item from the candidate pool that is **different** from the previously picked category.
+    -   This ensures variety is forced even if one category has overwhelmingly high personalization scores.
 
 ---
 

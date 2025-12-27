@@ -231,10 +231,41 @@ export async function GET(request: Request) {
         return { product: p, score };
     });
 
-    // Sort by score descending
+    // Sort by personalized score first to create candidates list
     scoredProducts.sort((a, b) => b.score - a.score);
 
-    const finalProducts = scoredProducts.map(wp => wp.product);
+    // 5. SPREAD SORT (SMART INTERLEAVING)
+    // Greedy algorithm to prevent category clumping
+    const finalProducts: Product[] = [];
+    let pool = [...scoredProducts];
+    let lastCategory: string | null = null;
+
+    while (pool.length > 0) {
+        let selectedIndex = -1;
+
+        // Try to find the highest-scoring item that isn't the same category as the last one
+        // minimal lookahead of 6 items to effectively "spread"
+        const lookahead = Math.min(pool.length, 6);
+
+        for (let i = 0; i < lookahead; i++) {
+            if (pool[i].product.category !== lastCategory) {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        // Fallback: If all top items are the same category, just pick the top one
+        if (selectedIndex === -1) {
+            selectedIndex = 0;
+        }
+
+        const selected = pool[selectedIndex];
+        finalProducts.push(selected.product);
+        lastCategory = selected.product.category;
+
+        // Remove from pool
+        pool.splice(selectedIndex, 1);
+    }
 
     return NextResponse.json(finalProducts);
 }
