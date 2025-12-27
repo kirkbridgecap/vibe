@@ -17,6 +17,29 @@ This document tracks upcoming features and brainstormed ideas for the Vibe gift 
 - **Double Match**: If you and a friend both swipe right (Like) on the same product, trigger a real-time notification.
 - "X and Y liked this" badges on popular items.
 
+## 💰 Revenue & Monetization Options
+
+### 1. Affiliate Marketing (Primary)
+- Integrate **Amazon Associates** or other affiliate networks.
+- Earn a commission on every successful purchase made through the "View on Amazon" links.
+
+### 2. Sponsored "First Card" Placements
+- Allow brands to pay for "Boosted" visibility.
+- Their product appears as the guaranteed 1st or 2nd card in a user's session for specific categories.
+
+### 3. Vibe Premium (Subscription)
+- Unlimited wishlists and custom list folders.
+- Advanced AI Gift Assistant: A chatbot that sifts through the data and suggests a "Vibe Match" based on a recipient's social profile.
+- Ad-free browsing experience.
+
+### 4. Data Insights for Brands
+- Provide anonymized data to retailers about which products are being "Liked" vs. "Noped" in high volume.
+- Help brands understand current gifting trends before they hit the mainstream.
+
+### 5. "Group Gift" Surcharge
+- Integrate a checkout system where friends can split the cost of a gift directly in the app.
+- Take a small transaction fee (1-2%) for the convenience of group coordination.
+
 ---
 
 ## 🛠 Technical Considerations
