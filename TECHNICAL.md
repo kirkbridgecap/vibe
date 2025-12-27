@@ -19,7 +19,7 @@ Vibe is built as a **Full-Stack Next.js Application** utilizing a hybrid data mo
     -   **Tailwind CSS 4**: For high-performance, utility-first styling.
     -   **Framer Motion**: Powering the Tinder-style swipe physics and spring-based card interactions.
 -   **APIs**:
-    -   **RapidAPI (Real-time Amazon Data)**: The primary source for product discovery.
+    -   **CanopyAPI (Amazon Product Data)**: The primary source for high-quality product metadata (Titles, Images, Reviews).
 
 ---
 
@@ -53,8 +53,8 @@ When a user requests products, the backend performs the following steps:
 
 To handle the strict 100-request/month limit on the Amazon API, Vibe implements a **Rolling Smart Cache**:
 
-### 1. Multi-Category Refresh
-The app maintains separate cache buckets for 6 distinct gift categories (Tech, Fashion, Wellness, etc.). Instead of refreshing everything at once, the API identifies **exactly one** stale category bucket (>24 hours old) per request and refreshes just that one.
+### 1. Database-First Fetching
+The app prioritizes the internal Postgres database. External API calls to CanopyAPI are only triggered as a fallback background job when a category's product count drops below a critical threshold. This keeps API usage minimal and predictable.
 
 ### 2. Global deduplication
 The app tracks `RejectedIds` (Nopes) and `WishlistIds` (Likes) to ensure that once a user has interacted with a product, it is filtered out of their feed permanently, preventing redundant "swipes."
@@ -62,7 +62,7 @@ The app tracks `RejectedIds` (Nopes) and `WishlistIds` (Likes) to ensure that on
 ### 3. Variability & Growth (The "Vibe Catalog")
 To solve "Cache Amnesia" (Vercel resets) and "API Quota Limits," we migrated from a file-based cache to a **Persistent Database Catalog**.
 -   **Permanent Library**: Products fetched from Amazon are saved to a PostgreSQL `Product` table. They persist indefinitely, building a massive library over time.
--   **Lazy Seeding**: The API only calls RapidAPI if a category in the DB is "empty" (count < 50). Once seeded, it serves millions of users with **zero API costs**.
+-   **Lazy Seeding**: The API only calls **CanopyAPI** if a category in the DB is "empty" (count < 5). Once seeded, it serves millions of users with **zero API costs**.
 -   **Global Interleaving**: Since the DB holds all categories permanently, the "Spread Sort" algorithm now has access to a much wider pool of candidates, ensuring robust interleaving even for new users.
 
 ---

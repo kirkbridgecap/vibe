@@ -5,63 +5,65 @@ import { authOptions } from "../auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 
 // Configuration
-const RAPIDAPI_HOST = 'real-time-amazon-data.p.rapidapi.com';
-const DB_CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours (Used to determine "Staleness" for re-fetching)
+const CANOPY_API_HOST = 'rest.canopyapi.co';
+const DB_CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Helper: Fetch from RapidAPI
-async function fetchFromRapidAPI(query: string, categoryId: string): Promise<any[] | null> {
-    const key = process.env.RAPIDAPI_KEY;
+// Helper: Fetch from CanopyAPI
+async function fetchFromCanopyAPI(query: string, categoryId: string): Promise<any[] | null> {
+    const key = process.env.CANOPY_API_KEY;
 
     if (!key) {
-        console.error('RAPIDAPI_KEY is not defined');
+        console.error('CANOPY_API_KEY is not defined');
         return null;
     }
+    console.log(`Using CANOPY_API_KEY: ${key.substring(0, 4)}...`);
 
     // Fetch 2 pages for variety
     const products: any[] = [];
 
     for (const page of [1, 2]) {
-        const url = `https://${RAPIDAPI_HOST}/search?query=${encodeURIComponent(query)}&page=${page}&country=US&sort_by=RELEVANCE&product_condition=NEW`;
-        console.log(`Fetching from RapidAPI [${categoryId}] page ${page}: ${url}`);
+        // Canopy API url structure
+        const url = `https://${CANOPY_API_HOST}/api/amazon/search?searchTerm=${encodeURIComponent(query)}&page=${page}&domain=US`;
+        console.log(`Fetching from CanopyAPI [${categoryId}] page ${page}: ${url}`);
 
         try {
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
-                    'x-rapidapi-key': key,
-                    'x-rapidapi-host': RAPIDAPI_HOST,
+                    'API-KEY': key,
+                    'Content-Type': 'application/json',
                 },
             });
 
             if (!response.ok) {
-                console.error(`RapidAPI Error on page ${page}: ${response.status}`);
+                console.error(`CanopyAPI Error on page ${page}: ${response.status}`);
                 continue;
             }
 
             const data = await response.json();
-            const rawProducts = data?.data?.products;
+            // Data path based on verified response: data.data.amazonProductSearchResults.productResults.results
+            const rawProducts = data?.data?.amazonProductSearchResults?.productResults?.results;
 
             if (Array.isArray(rawProducts)) {
                 rawProducts.forEach((item: any) => {
-                    const priceStr = item.product_price || '$0';
-                    const price = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
+                    const price = item.price?.value || 0;
 
                     products.push({
                         id: item.asin,
-                        title: item.product_title,
-                        price: isNaN(price) ? 0 : price,
+                        title: item.title,
+                        price: price,
                         currency: 'USD',
-                        imageUrl: item.product_photo,
-                        link: item.product_url,
+                        imageUrl: item.mainImageUrl,
+                        link: item.url,
                         category: categoryId,
-                        isBestSeller: item.is_best_seller || false,
-                        rating: parseFloat(item.product_star_rating || '0'),
-                        reviews: item.product_num_ratings || 0
+                        isBestSeller: item.isBestSeller || false,
+                        rating: item.rating || 0,
+                        reviews: item.ratingsTotal || 0
                     });
                 });
             }
         } catch (error) {
-            console.error(`RapidAPI Fetch Failed for page ${page}:`, error);
+            console.error(`CanopyAPI Fetch Failed for page ${page}:`, error);
         }
     }
 
@@ -119,13 +121,13 @@ export async function GET(request: Request) {
             // "Stale" if very few items (e.g. First time setup) 
             // OR if we wanted to enforce a time-based refresh, we could check updatedAt, 
             // but for now, simple count is safer for quota.
-            const isStale = count < 50;
+            const isStale = count < 5; // Reduced threshold to just ensuring we have SOME data to start
 
             if (isStale) {
                 const randomQuery = cat.queries[Math.floor(Math.random() * cat.queries.length)];
                 console.log(`Refreshing Catalog: ${cat.label} (Count: ${count})`);
 
-                const newProducts = await fetchFromRapidAPI(randomQuery, cat.id);
+                const newProducts = await fetchFromCanopyAPI(randomQuery, cat.id);
 
                 if (newProducts && newProducts.length > 0) {
                     // Upsert to Postgres
@@ -175,7 +177,8 @@ export async function GET(request: Request) {
     }
 
     if (allProducts.length === 0) {
-        return NextResponse.json({ error: 'No products available' }, { status: 404 });
+        // Return empty array instead of 404 object to be safe for frontend
+        return NextResponse.json([]);
     }
 
     // 4. WEIGHTED SCORING (In-Memory)

@@ -50,13 +50,18 @@ export default function Home() {
       if (filters.maxRating) queryParams.set('maxRating', filters.maxRating.toString());
 
       const res = await fetch(`/api/products?${queryParams.toString()}`);
-      const data: Product[] = await res.json();
+      const data = await res.json();
 
-      // Filter out products already in wishlist or rejected list
-      const filtered = data.filter(p =>
-        !wishlist.find(w => w.id === p.id) &&
-        !rejectedIds.includes(p.id)
-      );
+      let filtered: Product[] = [];
+      if (Array.isArray(data)) {
+        // Filter out products already in wishlist or rejected list
+        filtered = data.filter((p: Product) =>
+          !wishlist.find(w => w.id === p.id) &&
+          !rejectedIds.includes(p.id)
+        );
+      } else {
+        console.warn("API returned invalid data format:", data);
+      }
 
       setProducts(filtered);
     } catch (error) {
