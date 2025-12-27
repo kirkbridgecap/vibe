@@ -1,0 +1,74 @@
+# Vibe - Technical Documentation
+
+This document provides a deep dive into the architecture, technology stack, and recommendation logic powering the Vibe application.
+
+---
+
+## 🏗️ System Architecture
+
+Vibe is built as a **Full-Stack Next.js Application** utilizing a hybrid data model for high performance and personalized discovery.
+
+### 1. The Technology Stack
+-   **Core**: [Next.js 15+](https://nextjs.org/) with App Router (Server & Client Components).
+-   **Database**: **PostgreSQL** for persistence, managed through **Prisma ORM**.
+-   **Authentication**: **NextAuth.js** (v4/v5) implementing Google OAuth.
+-   **Frontend State**: 
+    -   `LocalStorage` for guest persistence and "Nope" lists.
+    -   `React Hooks` for real-time swipe state management.
+-   **UI & Animations**:
+    -   **Tailwind CSS 4**: For high-performance, utility-first styling.
+    -   **Framer Motion**: Powering the Tinder-style swipe physics and spring-based card interactions.
+-   **APIs**:
+    -   **RapidAPI (Real-time Amazon Data)**: The primary source for product discovery.
+
+---
+
+## 🧬 Recommendation Engine (The "Secret Sauce")
+
+Vibe uses a **Weighted Content-Based Filtering** algorithm to personalize the gift feed without requiring millions of users.
+
+### A. Preference Tracking
+Every user interaction (Swipe) is treated as a training signal for the algorithm:
+-   **Like (Swipe Right)**: Increases the weight for that product's category by `+1.0`.
+-   **Nope (Swipe Left)**: Decreases the weight for that category by `-0.5` (clamped at a minimum of `0.1` to preserve variety).
+
+These scores are saved in the `CategoryScore` table for authenticated users or in `localStorage` for guests.
+
+### B. The Weighted Shuffle Algorithm
+When a user requests products, the backend performs the following steps:
+1.  **Filtering**: Products are filtered based on the user's price range (`minPrice` to `maxPrice`).
+2.  **Scoring**: Each product is assigned a dynamic score using the formula:
+    $$Score = (CategoryWeight) \times (RandomFactor + 0.5)$$
+3.  **Shuffle**: The products are sorted by this score in descending order.
+
+**Why this works**:
+-   By adding a `RandomFactor`, we ensure that the feed isn't 100% predictable. 
+-   Liked categories appear significantly more often and higher up, but "Freshness" is maintained because any category *can* still win a high score occasionally.
+
+---
+
+## ⚡ Data Management & Quota Optimization
+
+To handle the strict 100-request/month limit on the Amazon API, Vibe implements a **Rolling Smart Cache**:
+
+### 1. Multi-Category Refresh
+The app maintains separate cache buckets for 6 distinct gift categories (Tech, Fashion, Wellness, etc.). Instead of refreshing everything at once, the API identifies **exactly one** stale category bucket (>24 hours old) per request and refreshes just that one.
+
+### 2. Global deduplication
+The app tracks `RejectedIds` (Nopes) and `WishlistIds` (Likes) to ensure that once a user has interacted with a product, it is filtered out of their feed permanently, preventing redundant "swipes."
+
+---
+
+## 🔄 Hybrid Data Sync Model
+
+Vibe allows for an "instant-start" guest experience while providing robust account persistence:
+-   **Guests**: Data lives in `localStorage`. 
+-   **Sign-In**: Upon Google login, the `useUserData` hook merges existing local swipes into the database.
+-   **Authored Requests**: Once logged in, the application prioritizes database records over local storage, allowing a seamless transition between mobile and desktop.
+
+---
+
+## 🔒 Security & Performance
+-   **Edge Compatible**: API routes are designed to run on Vercel's Edge/Serverless runtime.
+-   **Prisma Client Singleton**: Implemented to prevent "Too many connections" errors common in Serverless environments.
+-   **Image Optimization**: Uses Next.js Image component with restrictive hostname white-listing for optimized CDN delivery of Amazon product photos.
