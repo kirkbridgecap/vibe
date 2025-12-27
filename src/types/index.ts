@@ -15,4 +15,7 @@ export interface FilterState {
     minPrice: number;
     maxPrice: number;
     category?: string;
+    minReviews?: number;
+    minRating?: number;
+    maxRating?: number;
 }

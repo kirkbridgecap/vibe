@@ -1,14 +1,16 @@
 'use client';
 
 import { FilterState } from '@/types';
-import { Filter } from 'lucide-react';
+import { User, Heart } from 'lucide-react';
 
 interface StickyFilterBarProps {
     filters: FilterState;
     onFilterChange: (newFilters: Partial<FilterState>) => void;
+    onProfileClick: () => void;
+    wishlistCount: number;
 }
 
-export function StickyFilterBar({ filters, onFilterChange }: StickyFilterBarProps) {
+export function StickyFilterBar({ filters, onFilterChange, onProfileClick, wishlistCount }: StickyFilterBarProps) {
     return (
         <div className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 p-3">
             <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
@@ -27,13 +29,10 @@ export function StickyFilterBar({ filters, onFilterChange }: StickyFilterBarProp
                             <path d="M4 4l8 16L20 4" />
                         </svg>
                     </div>
-                    <span className="text-xl font-black tracking-tighter text-white uppercase italic hidden sm:block">
-                        Vibe
-                    </span>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {/* Price/Budget Filter (Simplified for UI) */}
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                    {/* Price/Budget Filter */}
                     <select
                         value={filters.maxPrice === 10000 ? 'all' : filters.maxPrice <= 25 ? 'low' : filters.maxPrice <= 100 ? 'mid' : 'high'}
                         onChange={(e) => {
@@ -43,7 +42,7 @@ export function StickyFilterBar({ filters, onFilterChange }: StickyFilterBarProp
                             else if (val === 'high') onFilterChange({ minPrice: 100, maxPrice: 10000 });
                             else onFilterChange({ minPrice: 0, maxPrice: 10000 });
                         }}
-                        className="bg-zinc-900 border border-zinc-700 text-white text-sm rounded-full px-4 py-2 focus:ring-2 focus:ring-brand focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors"
+                        className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
                     >
                         <option value="all">Any Price</option>
                         <option value="low">Under $25</option>
@@ -51,10 +50,47 @@ export function StickyFilterBar({ filters, onFilterChange }: StickyFilterBarProp
                         <option value="high">$100+</option>
                     </select>
 
-                    <button className="p-2 text-zinc-400 hover:text-white transition-colors">
-                        <Filter size={20} />
-                    </button>
+                    {/* Rating Filter */}
+                    <select
+                        value={filters.minRating === 4.5 ? '4.5-5.0' : filters.maxRating === 4.5 ? '4.0-4.5' : filters.minRating === 4 ? '4.0+' : 'any'}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '4.0+') onFilterChange({ minRating: 4.0, maxRating: 5.0 });
+                            else if (val === '4.0-4.5') onFilterChange({ minRating: 4.0, maxRating: 4.5 });
+                            else if (val === '4.5-5.0') onFilterChange({ minRating: 4.5, maxRating: 5.0 });
+                            else onFilterChange({ minRating: 0, maxRating: 5.0 });
+                        }}
+                        className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
+                    >
+                        <option value="any">Any Rating</option>
+                        <option value="4.0+">4.0+</option>
+                        <option value="4.0-4.5">4.0 - 4.5</option>
+                        <option value="4.5-5.0">4.5 - 5.0</option>
+                    </select>
+
+                    {/* Reviews Filter */}
+                    <select
+                        value={filters.minReviews || 0}
+                        onChange={(e) => onFilterChange({ minReviews: Number(e.target.value) })}
+                        className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
+                    >
+                        <option value="0">Any Reviews</option>
+                        <option value="100">100+</option>
+                        <option value="1000">1k+</option>
+                        <option value="5000">5k+</option>
+                    </select>
                 </div>
+
+                {/* Profile/Wishlist Button */}
+                <button
+                    onClick={onProfileClick}
+                    className="relative p-2 text-zinc-400 hover:text-white transition-colors shrink-0"
+                >
+                    <User size={24} />
+                    {wishlistCount > 0 && (
+                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-zinc-950"></span>
+                    )}
+                </button>
             </div>
         </div>
     );

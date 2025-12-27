@@ -45,6 +45,9 @@ export default function Home() {
         preferences: JSON.stringify(categoryScores),
       });
       if (filters.category) queryParams.set('category', filters.category);
+      if (filters.minReviews) queryParams.set('minReviews', filters.minReviews.toString());
+      if (filters.minRating) queryParams.set('minRating', filters.minRating.toString());
+      if (filters.maxRating) queryParams.set('maxRating', filters.maxRating.toString());
 
       const res = await fetch(`/api/products?${queryParams.toString()}`);
       const data: Product[] = await res.json();
@@ -118,26 +121,14 @@ export default function Home() {
   }, [products, loading, isDrawerOpen]);
 
   return (
-    <main className="flex flex-col h-screen w-full relative bg-zinc-950 overflow-hidden">
+    <main className="flex flex-col h-screen w-full relative bg-zinc-950 overflow-hidden text-white">
 
-      <StickyFilterBar filters={filters} onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))} />
-
-
-
-      {/* Floating Wishlist Button (Mobile/Desktop) */}
-      <button
-        onClick={() => setIsDrawerOpen(true)}
-        className="absolute top-20 right-4 z-40 bg-zinc-900 border border-zinc-700 p-3 rounded-full shadow-lg hover:border-brand transition-colors group"
-      >
-        <div className="relative">
-          <Heart className={cn("text-zinc-400 group-hover:text-brand transition-colors", wishlist.length > 0 && "fill-brand text-brand")} />
-          {wishlist.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-brand text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-              {wishlist.length}
-            </span>
-          )}
-        </div>
-      </button>
+      <StickyFilterBar
+        filters={filters}
+        onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
+        onProfileClick={() => setIsDrawerOpen(true)}
+        wishlistCount={wishlist.length}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col items-center justify-center pt-28 pb-10 px-4 w-full">

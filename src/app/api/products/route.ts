@@ -115,6 +115,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const minPrice = parseFloat(searchParams.get('minPrice') || '0');
     const maxPrice = parseFloat(searchParams.get('maxPrice') || '10000');
+    const minReviews = parseInt(searchParams.get('minReviews') || '0');
+    const minRating = parseFloat(searchParams.get('minRating') || '0');
+    const maxRating = parseFloat(searchParams.get('maxRating') || '5');
 
     // Preferences: JSON object { "tech": 2.0, "home": 0.5 }
     // We default to all categories having weight 1.0
@@ -130,7 +133,7 @@ export async function GET(request: Request) {
                 where: { userId: session.user.id }
             });
             // Convert array to Record<string, number>
-            dbScores.forEach(s => {
+            dbScores.forEach((s: any) => {
                 userPreferences[s.category] = s.score;
             });
         } catch (e) {
@@ -195,7 +198,10 @@ export async function GET(request: Request) {
 
     // 3. FILTERING & RECOMMENDATION ENGINE
     const filteredProducts = allProducts.filter((p: Product) => {
-        return p.price >= minPrice && p.price <= maxPrice;
+        const matchesPrice = p.price >= minPrice && p.price <= maxPrice;
+        const matchesReviews = (p.reviews ?? 0) >= minReviews;
+        const matchesRating = (p.rating ?? 0) >= minRating && (p.rating ?? 5) <= maxRating;
+        return matchesPrice && matchesReviews && matchesRating;
     });
 
     // 4. WEIGHTED SHUFFLE

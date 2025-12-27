@@ -55,7 +55,7 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
             className={`absolute top-0 left-0 w-full h-full bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl border border-zinc-800 origin-bottom select-none cursor-grab active:cursor-grabbing`}
         >
             {/* Image Section */}
-            <div className="relative h-[65%] w-full bg-white">
+            <div className="relative h-[50%] w-full bg-white">
                 <Image
                     src={product.imageUrl}
                     alt={product.title}
@@ -82,7 +82,7 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
             </div>
 
             {/* Content Section */}
-            <div className="h-[35%] p-6 flex flex-col bg-zinc-900">
+            <div className="h-[50%] p-6 flex flex-col bg-zinc-900">
                 <div className="flex-1 overflow-y-auto pr-1 mb-4 custom-scrollbar">
                     <div className="flex justify-between items-start gap-2 mb-2">
                         <h2 className={`font-bold text-white leading-tight ${product.title.length > 80 ? 'text-sm' : product.title.length > 50 ? 'text-base' : 'text-xl'}`}>
