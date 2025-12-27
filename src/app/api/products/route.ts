@@ -224,10 +224,12 @@ export async function GET(request: Request) {
     // Assign a score to each product based on user preferences + random noise
     // Score = (UserWeightForCategory || 1.0) * RandomFactor
     const scoredProducts = filteredProducts.map(p => {
-        const weight = userPreferences[p.category] !== undefined ? userPreferences[p.category] : 1.0;
-        // Base weight * random gives us a probabilistic shuffle where liked categories appear more often/higher
-        // Adding a sizeable random component ensures variety isn't killed
-        const score = weight * (Math.random() + 0.5);
+        const rawWeight = userPreferences[p.category] !== undefined ? userPreferences[p.category] : 1.0;
+        // Dampen the weight impact using Logarithm to prevent runaway domination
+        // e.g. Weight 20 becomes ~4.0, Weight 1 remains ~1.7
+        const effectiveWeight = Math.log(rawWeight + Math.E);
+
+        const score = effectiveWeight * (Math.random() + 0.5);
         return { product: p, score };
     });
 
@@ -244,8 +246,8 @@ export async function GET(request: Request) {
         let selectedIndex = -1;
 
         // Try to find the highest-scoring item that isn't the same category as the last one
-        // minimal lookahead of 6 items to effectively "spread"
-        const lookahead = Math.min(pool.length, 6);
+        // Increased lookahead to 20 to break through larger clumps
+        const lookahead = Math.min(pool.length, 20);
 
         for (let i = 0; i < lookahead; i++) {
             if (pool[i].product.category !== lastCategory) {
