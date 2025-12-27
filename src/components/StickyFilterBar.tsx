@@ -44,7 +44,7 @@ export function StickyFilterBar({ filters, onFilterChange, onProfileClick, wishl
                         }}
                         className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
                     >
-                        <option value="all">Any Price</option>
+                        <option value="all">Price</option>
                         <option value="low">Under $25</option>
                         <option value="mid">$25 - $100</option>
                         <option value="high">$100+</option>
@@ -59,7 +59,7 @@ export function StickyFilterBar({ filters, onFilterChange, onProfileClick, wishl
                         }}
                         className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
                     >
-                        <option value="0">Any Rating</option>
+                        <option value="0">Rating</option>
                         <option value="3.5">3.5+</option>
                         <option value="4.0">4.0+</option>
                         <option value="4.2">4.2+</option>
@@ -71,7 +71,7 @@ export function StickyFilterBar({ filters, onFilterChange, onProfileClick, wishl
                         onChange={(e) => onFilterChange({ minReviews: Number(e.target.value) })}
                         className="bg-zinc-900 border border-zinc-700 text-white text-xs rounded-full px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shrink-0"
                     >
-                        <option value="0">Any Reviews</option>
+                        <option value="0">Reviews</option>
                         <option value="100">100+</option>
                         <option value="1000">1k+</option>
                         <option value="5000">5k+</option>

@@ -82,8 +82,8 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
             </div>
 
             {/* Content Section */}
-            <div className="h-[50%] p-6 flex flex-col bg-zinc-900">
-                <div className="flex-1 overflow-y-auto pr-1 mb-4 custom-scrollbar">
+            <div className="h-[50%] p-5 pt-3 flex flex-col bg-zinc-900">
+                <div className="flex-1 overflow-y-auto pr-1 mb-2 custom-scrollbar">
                     <div className="flex justify-between items-start gap-2 mb-2">
                         <h2 className={`font-bold text-white leading-tight ${product.title.length > 80 ? 'text-sm' : product.title.length > 50 ? 'text-base' : 'text-xl'}`}>
                             {product.title}
