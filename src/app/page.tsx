@@ -140,7 +140,7 @@ export default function Home() {
       </button>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col items-center justify-center pt-20 pb-10 px-4 w-full">
+      <div className="flex-1 flex flex-col items-center justify-center pt-28 pb-10 px-4 w-full">
         <SwipeDeck
           ref={swipeDeckRef}
           products={products}
