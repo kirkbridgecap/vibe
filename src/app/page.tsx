@@ -1,65 +1,148 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Product, FilterState } from '@/types';
+import { StickyFilterBar } from '@/components/StickyFilterBar';
+import { SwipeDeck, SwipeDeckRef } from '@/components/SwipeDeck';
+import { WishlistDrawer } from '@/components/WishlistDrawer';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { Menu, Heart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
+  // State
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<FilterState>({
+    minPrice: 0,
+    maxPrice: 10000,
+  });
+
+  const [wishlist, setWishlist] = useLocalStorage<Product[]>('giftpulse-wishlist', []);
+  const [rejectedIds, setRejectedIds] = useLocalStorage<string[]>('giftpulse-rejected', []);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Refs
+  const swipeDeckRef = useRef<SwipeDeckRef>(null);
+
+  // Fetch Products
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const queryParams = new URLSearchParams({
+        minPrice: filters.minPrice.toString(),
+        maxPrice: filters.maxPrice.toString(),
+      });
+      if (filters.category) queryParams.set('category', filters.category);
+
+      const res = await fetch(`/api/products?${queryParams.toString()}`);
+      const data: Product[] = await res.json();
+
+      // Filter out products already in wishlist or rejected list
+      const filtered = data.filter(p =>
+        !wishlist.find(w => w.id === p.id) &&
+        !rejectedIds.includes(p.id)
+      );
+
+      setProducts(filtered);
+    } catch (error) {
+      console.error('Failed to fetch products', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Handlers
+  const handleSwipeRight = (product: Product) => {
+    // Avoid duplicates
+    if (!wishlist.find(p => p.id === product.id)) {
+      setWishlist(prev => [...prev, product]);
+    }
+    // Remove from main state to keep in sync
+    setProducts(prev => prev.filter(p => p.id !== product.id));
+  };
+
+  const handleSwipeLeft = (product: Product) => {
+    setRejectedIds(prev => [...prev, product.id]);
+    setProducts(prev => prev.filter(p => p.id !== product.id));
+  };
+
+  const handleRemoveFromWishlist = (id: string) => {
+    setWishlist(prev => prev.filter(p => p.id !== id));
+  };
+
+  // Keyboard Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (products.length === 0 || loading || isDrawerOpen) return;
+
+      // Use ref to trigger internal swipe animation in Deck
+      if (e.key === 'ArrowRight') {
+        swipeDeckRef.current?.swipe('right');
+      } else if (e.key === 'ArrowLeft') {
+        swipeDeckRef.current?.swipe('left');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [products, loading, isDrawerOpen]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="flex flex-col h-screen w-full relative bg-zinc-950 overflow-hidden">
+
+      <StickyFilterBar filters={filters} onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))} />
+
+
+
+      {/* Floating Wishlist Button (Mobile/Desktop) */}
+      <button
+        onClick={() => setIsDrawerOpen(true)}
+        className="absolute top-20 right-4 z-40 bg-zinc-900 border border-zinc-700 p-3 rounded-full shadow-lg hover:border-brand transition-colors group"
+      >
+        <div className="relative">
+          <Heart className={cn("text-zinc-400 group-hover:text-brand transition-colors", wishlist.length > 0 && "fill-brand text-brand")} />
+          {wishlist.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-brand text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+              {wishlist.length}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col items-center justify-center pt-20 pb-10 px-4 w-full">
+        <SwipeDeck
+          ref={swipeDeckRef}
+          products={products}
+          loading={loading}
+          onSwipeRight={handleSwipeRight}
+          onSwipeLeft={handleSwipeLeft}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        {/* Hint Text */}
+        <div className="mt-8 flex gap-8 text-zinc-500 text-sm font-medium opacity-50">
+          <div className="flex items-center gap-2">
+            <span className="bg-zinc-800 px-2 py-1 rounded border border-zinc-700">←</span>
+            <span>Nope</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>Like</span>
+            <span className="bg-zinc-800 px-2 py-1 rounded border border-zinc-700">→</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+
+      <WishlistDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        wishlist={wishlist}
+        onRemove={handleRemoveFromWishlist}
+      />
+    </main>
   );
 }
