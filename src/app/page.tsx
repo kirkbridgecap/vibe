@@ -131,7 +131,7 @@ export default function Home() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col items-center justify-start pt-24 pb-4 px-4 w-full relative">
+      <div className="flex-1 flex flex-col items-center justify-start pt-32 pb-4 px-4 w-full relative">
         <SwipeDeck
           ref={swipeDeckRef}
           products={products}
@@ -139,18 +139,6 @@ export default function Home() {
           onSwipeRight={handleSwipeRight}
           onSwipeLeft={handleSwipeLeft}
         />
-
-        {/* Hint Text */}
-        <div className="mt-8 flex gap-8 text-zinc-500 text-sm font-medium opacity-50">
-          <div className="flex items-center gap-2">
-            <span className="bg-zinc-800 px-2 py-1 rounded border border-zinc-700">←</span>
-            <span>Nope</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span>Like</span>
-            <span className="bg-zinc-800 px-2 py-1 rounded border border-zinc-700">→</span>
-          </div>
-        </div>
       </div>
 
       <WishlistDrawer
@@ -160,6 +148,6 @@ export default function Home() {
         onRemove={handleRemoveFromWishlist}
         onClear={clearWishlist}
       />
-    </main>
+    </main >
   );
 }

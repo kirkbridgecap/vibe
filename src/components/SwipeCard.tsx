@@ -122,10 +122,10 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
                     href={product.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-zinc-100 hover:bg-white text-black font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors mt-auto shrink-0"
+                    className="bg-zinc-100 hover:bg-white text-black font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors mt-auto shrink-0 text-sm"
                     onPointerDown={(e) => e.stopPropagation()} // Prevent drag when clicking button
                 >
-                    View on Amazon <ExternalLink size={18} />
+                    View on Amazon <ExternalLink size={16} />
                 </a>
             </div>
         </motion.div>
