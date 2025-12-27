@@ -20,6 +20,7 @@ export default function Home() {
 
   const [wishlist, setWishlist] = useLocalStorage<Product[]>('giftpulse-wishlist', []);
   const [rejectedIds, setRejectedIds] = useLocalStorage<string[]>('giftpulse-rejected', []);
+  const [categoryScores, setCategoryScores] = useLocalStorage<Record<string, number>>('giftpulse-scores', {});
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Refs
@@ -32,6 +33,7 @@ export default function Home() {
       const queryParams = new URLSearchParams({
         minPrice: filters.minPrice.toString(),
         maxPrice: filters.maxPrice.toString(),
+        preferences: JSON.stringify(categoryScores),
       });
       if (filters.category) queryParams.set('category', filters.category);
 
@@ -62,12 +64,26 @@ export default function Home() {
     if (!wishlist.find(p => p.id === product.id)) {
       setWishlist(prev => [...prev, product]);
     }
+
+    // Update Category Score (Boost liked category)
+    setCategoryScores(prev => ({
+      ...prev,
+      [product.category]: (prev[product.category] || 1) + 1
+    }));
+
     // Remove from main state to keep in sync
     setProducts(prev => prev.filter(p => p.id !== product.id));
   };
 
   const handleSwipeLeft = (product: Product) => {
     setRejectedIds(prev => [...prev, product.id]);
+
+    // Update Category Score (Slight penalty for noped category, but don't go below 0.1)
+    setCategoryScores(prev => ({
+      ...prev,
+      [product.category]: Math.max((prev[product.category] || 1) - 0.5, 0.1)
+    }));
+
     setProducts(prev => prev.filter(p => p.id !== product.id));
   };
 
@@ -142,6 +158,7 @@ export default function Home() {
         onClose={() => setIsDrawerOpen(false)}
         wishlist={wishlist}
         onRemove={handleRemoveFromWishlist}
+        onClear={() => setWishlist([])}
       />
     </main>
   );

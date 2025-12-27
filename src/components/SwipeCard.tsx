@@ -82,10 +82,10 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
             </div>
 
             {/* Content Section */}
-            <div className="h-[35%] p-6 flex flex-col justify-between bg-zinc-900">
-                <div>
+            <div className="h-[35%] p-6 flex flex-col bg-zinc-900">
+                <div className="flex-1 overflow-y-auto pr-1 mb-4 custom-scrollbar">
                     <div className="flex justify-between items-start gap-2 mb-2">
-                        <h2 className="text-xl font-bold text-white line-clamp-2 leading-tight">
+                        <h2 className={`font-bold text-white leading-tight ${product.title.length > 80 ? 'text-sm' : product.title.length > 50 ? 'text-base' : 'text-xl'}`}>
                             {product.title}
                         </h2>
                         <span className="text-green-400 font-semibold whitespace-nowrap">
@@ -102,13 +102,27 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
                             </span>
                         )}
                     </div>
+                    <div className="flex items-center gap-2 mb-4 text-xs text-zinc-400">
+                        {product.rating && (
+                            <div className="flex items-center gap-1 text-yellow-500">
+                                <span>★</span>
+                                <span className="font-medium text-white">{product.rating}</span>
+                            </div>
+                        )}
+                        {product.reviews && product.reviews > 0 && (
+                            <>
+                                <span>•</span>
+                                <span>{product.reviews.toLocaleString()} reviews</span>
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 <a
                     href={product.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-zinc-100 hover:bg-white text-black font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors"
+                    className="bg-zinc-100 hover:bg-white text-black font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors mt-auto shrink-0"
                     onPointerDown={(e) => e.stopPropagation()} // Prevent drag when clicking button
                 >
                     View on Amazon <ExternalLink size={18} />

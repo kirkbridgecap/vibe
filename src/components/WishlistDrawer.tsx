@@ -10,9 +10,10 @@ interface WishlistDrawerProps {
     onClose: () => void;
     wishlist: Product[];
     onRemove: (id: string) => void;
+    onClear: () => void;
 }
 
-export function WishlistDrawer({ isOpen, onClose, wishlist, onRemove }: WishlistDrawerProps) {
+export function WishlistDrawer({ isOpen, onClose, wishlist, onRemove, onClear }: WishlistDrawerProps) {
     return (
         <AnimatePresence>
             {isOpen && (
@@ -39,9 +40,23 @@ export function WishlistDrawer({ isOpen, onClose, wishlist, onRemove }: Wishlist
                                 <ShoppingBag className="text-brand" />
                                 Wishlist ({wishlist.length})
                             </h2>
-                            <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-full transition-colors">
-                                <X size={20} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {wishlist.length > 0 && (
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('Are you sure you want to remove all items?')) {
+                                                onClear();
+                                            }
+                                        }}
+                                        className="text-xs font-semibold text-red-500 hover:text-red-400 transition-colors px-3 py-1 bg-red-500/10 rounded-full"
+                                    >
+                                        Clear All
+                                    </button>
+                                )}
+                                <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-full transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
