@@ -5,6 +5,7 @@ import { Product, FilterState } from '@/types';
 import { StickyFilterBar } from '@/components/StickyFilterBar';
 import { SwipeDeck, SwipeDeckRef } from '@/components/SwipeDeck';
 import { WishlistDrawer } from '@/components/WishlistDrawer';
+import { MatchModal } from '@/components/MatchModal';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUserData } from '@/hooks/useUserData';
 import { Menu, Heart, RotateCcw } from 'lucide-react';
@@ -19,6 +20,9 @@ export default function Home() {
     minPrice: 0,
     maxPrice: 10000,
   });
+
+  // Vibe Match State
+  const [matchData, setMatchData] = useState<{ matches: any[], product: Product } | null>(null);
 
   const {
     wishlist,
@@ -138,6 +142,11 @@ export default function Home() {
       [product.category]: (categoryScores[product.category] || 1) + 1
     });
 
+    // Vibe Match Logic
+    if (product.friendMatches && product.friendMatches.length > 0) {
+      setMatchData({ matches: product.friendMatches, product });
+    }
+
     // Remove from main state & trigger refill if low
     setProducts(prev => {
       const remaining = prev.filter(p => p.id !== product.id);
@@ -251,6 +260,13 @@ export default function Home() {
         wishlist={wishlist}
         onRemove={handleRemoveFromWishlist}
         onClear={clearWishlist}
+      />
+
+      <MatchModal
+        isOpen={!!matchData}
+        onClose={() => setMatchData(null)}
+        matches={matchData?.matches || []}
+        productImage={matchData?.product.imageUrl || ''}
       />
     </main >
   );

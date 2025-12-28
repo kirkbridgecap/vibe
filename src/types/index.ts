@@ -9,6 +9,7 @@ export interface Product {
     reviews?: number;
     category: string;
     isBestSeller?: boolean;
+    friendMatches?: { name: string; image?: string; userId: string }[];
 }
 
 export interface FilterState {

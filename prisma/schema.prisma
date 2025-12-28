@@ -41,6 +41,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  inviteCode    String?   @unique // 6-char alphanumeric code
   accounts      Account[]
   sessions      Session[]
   
@@ -48,6 +49,12 @@ model User {
   wishlist      WishlistItem[]
   categoryScores CategoryScore[]
   rejectedIds   RejectedItem[]
+
+  // Social Graph
+  sentRequests     FriendRequest[] @relation("sentRequests")
+  receivedRequests FriendRequest[] @relation("receivedRequests")
+  friends          Friendship[]    @relation("userFriends")
+  friendOf         Friendship[]    @relation("friendUser")
 }
 
 model VerificationToken {
@@ -121,4 +128,34 @@ model Product {
   createdAt    DateTime @default(now())
 
   @@index([category])
+}
+
+// Social Models
+
+model FriendRequest {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sender     User     @relation("sentRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("receivedRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId])
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user      User     @relation("userFriends", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User     @relation("friendUser", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
 }

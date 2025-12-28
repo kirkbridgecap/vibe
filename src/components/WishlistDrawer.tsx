@@ -2,9 +2,10 @@
 
 import { Product } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Trash2, ShoppingBag, LogOut } from 'lucide-react';
+import { X, ExternalLink, Trash2, ShoppingBag, LogOut, Users } from 'lucide-react';
 import Image from 'next/image';
 import { signIn, signOut, useSession } from "next-auth/react";
+import { FriendManager } from './Social/FriendManager';
 
 interface WishlistDrawerProps {
     isOpen: boolean;
@@ -39,8 +40,8 @@ export function WishlistDrawer({ isOpen, onClose, wishlist, onRemove, onClear }:
                     >
                         <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
                             <h2 className="text-xl font-bold flex items-center gap-2">
-                                <ShoppingBag className="text-brand" />
-                                Wishlist ({wishlist.length})
+                                <Users className="text-brand" />
+                                Profile & Wishlist
                             </h2>
                             <div className="flex items-center gap-2">
                                 {wishlist.length > 0 && (
@@ -62,6 +63,17 @@ export function WishlistDrawer({ isOpen, onClose, wishlist, onRemove, onClear }:
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {session && (
+                                <div className="mb-6">
+                                    <FriendManager />
+                                    <div className="flex items-center gap-2 mt-6 mb-2">
+                                        <ShoppingBag size={16} className="text-zinc-400" />
+                                        <span className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Your Wishlist ({wishlist.length})</span>
+                                    </div>
+                                    <div className="h-px bg-zinc-800 mb-4" />
+                                </div>
+                            )}
+
                             {wishlist.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-zinc-500 text-center space-y-4">
                                     <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center">

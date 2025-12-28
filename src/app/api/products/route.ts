@@ -170,12 +170,60 @@ export async function GET(request: Request) {
         return NextResponse.json([]);
     }
 
+    // 3.5 FETCH FRIEND ACTIONS (The "Vibe Match" Logic)
+    // We do this efficiently by fetching all friend likes in one go and mapping them.
+    let friendLikesMap: Record<string, any[]> = {};
+
+    if (session?.user?.id) {
+        try {
+            // Get my friends
+            const friends = await prisma.friendship.findMany({
+                where: { userId: session.user.id },
+                include: { friend: { select: { id: true, name: true, image: true } } }
+            });
+            const friendIds = friends.map(f => f.friendId);
+
+            if (friendIds.length > 0) {
+                // Get all items friends have liked that are in our candidate pool (optimization: strictly we could filter by pool IDs but finding all is usually fine)
+                const friendWishlist = await prisma.wishlistItem.findMany({
+                    where: { userId: { in: friendIds } },
+                    include: { user: { select: { id: true, name: true, image: true } } }
+                });
+
+                // Group by Product ID
+                friendWishlist.forEach(item => {
+                    if (!friendLikesMap[item.productId]) {
+                        friendLikesMap[item.productId] = [];
+                    }
+                    // Avoid duplicates if friend swipe multiple times (unlikely but good safety)
+                    if (!friendLikesMap[item.productId].some(m => m.userId === item.userId)) {
+                        friendLikesMap[item.productId].push({
+                            userId: item.userId,
+                            name: item.user.name,
+                            image: item.user.image
+                        });
+                    }
+                });
+                console.log(`[VibeMatch] Found ${Object.keys(friendLikesMap).length} products with friend likes.`);
+            }
+        } catch (e) {
+            console.error("Failed to fetch friend matches", e);
+        }
+    }
+
     // 4. WEIGHTED SCORING (In-Memory)
     const scoredProducts = allProducts.map(p => {
         const rawWeight = userPreferences[p.category] !== undefined ? userPreferences[p.category] : 1.0;
         const effectiveWeight = Math.log(rawWeight + Math.E);
         const score = effectiveWeight * (Math.random() + 0.5);
-        return { product: p, score };
+
+        // Attach Friend Matches
+        const matches = friendLikesMap[p.id] || [];
+        if (matches.length > 0) console.log(`[VibeMatch] Product ${p.id} has ${matches.length} matches.`);
+
+        const enrichedProduct = { ...p, friendMatches: matches };
+
+        return { product: enrichedProduct, score };
     });
 
     // Sort by score descending (Candidates List)

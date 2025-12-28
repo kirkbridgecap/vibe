@@ -118,6 +118,31 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
                     </div>
                 </div>
 
+                {/* Friend Matches */}
+                {product.friendMatches && product.friendMatches.length > 0 && (
+                    <div className="mb-3 flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                            {product.friendMatches.slice(0, 3).map((friend, i) => (
+                                <div key={i} className="w-8 h-8 rounded-full border-2 border-zinc-900 bg-zinc-800 overflow-hidden" title={friend.name}>
+                                    {friend.image ? (
+                                        <img src={friend.image} alt={friend.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-500 font-bold">
+                                            {friend.name[0]}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                        <span className="text-xs text-yellow-500 font-medium italic">
+                            {product.friendMatches.length === 1
+                                ? `Liked by ${product.friendMatches[0].name.split(' ')[0]}`
+                                : `Liked by ${product.friendMatches.length} friends`
+                            }
+                        </span>
+                    </div>
+                )}
+
                 <a
                     href={product.link}
                     target="_blank"
