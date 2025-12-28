@@ -33,18 +33,31 @@ export default function Home() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Refs
+  // Refs for stable fetchProducts access without triggering re-renders
   const swipeDeckRef = useRef<SwipeDeckRef>(null);
+  const rejectedIdsRef = useRef(rejectedIds);
+  const wishlistRef = useRef(wishlist);
+  const categoryScoresRef = useRef(categoryScores);
+
+  // Sync refs with state
+  useEffect(() => { rejectedIdsRef.current = rejectedIds; }, [rejectedIds]);
+  useEffect(() => { wishlistRef.current = wishlist; }, [wishlist]);
+  useEffect(() => { categoryScoresRef.current = categoryScores; }, [categoryScores]);
 
   // Fetch Products
   const fetchProducts = useCallback(async (isAppending = false) => {
     if (!isAppending) setLoading(true);
 
     try {
+      // Use Ref values to avoid closure dependencies and redundant re-fetches
+      const currentScores = categoryScoresRef.current;
+      const currentRejected = rejectedIdsRef.current;
+      const currentWishlist = wishlistRef.current;
+
       const queryParams = new URLSearchParams({
         minPrice: filters.minPrice.toString(),
         maxPrice: filters.maxPrice.toString(),
-        preferences: JSON.stringify(categoryScores),
+        preferences: JSON.stringify(currentScores),
       });
       if (filters.category) queryParams.set('category', filters.category);
       if (filters.minReviews) queryParams.set('minReviews', filters.minReviews.toString());
@@ -55,9 +68,9 @@ export default function Home() {
       const data = await res.json();
 
       if (Array.isArray(data)) {
-        // High Performance Filtering with Sets
-        const rejectedSet = new Set(rejectedIds);
-        const wishlistSet = new Set(wishlist.map(w => w.id));
+        // High Performance Filtering
+        const rejectedSet = new Set(currentRejected);
+        const wishlistSet = new Set(currentWishlist.map(w => w.id));
 
         const filtered = data.filter((p: Product) =>
           !wishlistSet.has(p.id) && !rejectedSet.has(p.id)
@@ -74,7 +87,6 @@ export default function Home() {
         }
 
         // AUTO-REFILL LOGIC
-        // If we have <= 5 fresh products left, trigger a background RESTOCK for that category
         if (filtered.length <= 5 && !isAppending) {
           console.log("Fresh content low, triggering background restock...");
 
@@ -107,11 +119,11 @@ export default function Home() {
     } finally {
       if (!isAppending) setLoading(false);
     }
-  }, [filters, rejectedIds, wishlist, categoryScores]);
+  }, [filters]);
 
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+  }, [fetchProducts]); // This is now safe because fetchProducts only changes when filters change
 
   // Handlers
   const handleSwipeRight = (product: Product) => {
