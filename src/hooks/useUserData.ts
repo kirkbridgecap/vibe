@@ -69,10 +69,14 @@ export function useUserData() {
 
     const clearWishlist = async () => {
         setWishlist([]);
-        // Note: We haven't implemented a bulk delete API yet, 
-        // so strictly speaking this desyncs if we don't call it.
-        // For now, let's just leave it local or implement a loop (inefficient) or bulk endpoint.
-        // Given usage, let's skip the DB clear for this exact step or assume user won't do it often.
+
+        if (session?.user?.id) {
+            try {
+                await fetch('/api/user/wishlist?clear=true', { method: 'DELETE' });
+            } catch (e) {
+                console.error("Failed to clear DB wishlist", e);
+            }
+        }
     };
 
     const updateCategoryScores = async (newScores: Record<string, number>) => {

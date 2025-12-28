@@ -86,24 +86,40 @@ export async function DELETE(request: Request) {
     const session = await getServerSession(authOptions);
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get('id');
+    const isClear = searchParams.get('clear') === 'true';
 
-    if (!session?.user?.id || !productId) {
-        return NextResponse.json({ error: 'Unauthorized or Missing ID' }, { status: 400 });
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!productId && !isClear) {
+        return NextResponse.json({ error: 'Missing ID or clear flag' }, { status: 400 });
     }
 
     try {
-        await prisma.wishlistItem.delete({
-            where: {
-                userId_productId: {
-                    userId: session.user.id,
-                    productId: productId
+        if (isClear) {
+            // Bulk Delete
+            await prisma.wishlistItem.deleteMany({
+                where: {
+                    userId: session.user.id
                 }
-            }
-        });
+            });
+        } else if (productId) {
+            // Single Delete
+            await prisma.wishlistItem.delete({
+                where: {
+                    userId_productId: {
+                        userId: session.user.id,
+                        productId: productId
+                    }
+                }
+            });
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {
         // If id doesn't exist, prisma throws. We can ignore or return 404.
+        console.error("Delete failed", error);
         return NextResponse.json({ success: true });
     }
 }

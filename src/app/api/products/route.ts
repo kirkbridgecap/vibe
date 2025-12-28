@@ -104,34 +104,33 @@ export async function GET(request: Request) {
         }
     }
 
+    // 1.5 GET PARAMS FOR REFILL
+    const refreshCatId = searchParams.get('refreshCategory');
+
     // 2. CHECK & UPDATE CATALOG (The "Smart Bootstrap" Logic)
     const now = new Date();
     const shuffledCategories = [...CATEGORIES].sort(() => Math.random() - 0.5);
     let updatesInThisRequest = 0;
 
     for (const cat of shuffledCategories) {
-        // Count items in DB for this category
-        // If we have plenty (> 50), we consider it "Fresh enough" to avoid API calls
-        // This effectively implements the "Fetch Once" logic since the table persists forever
         try {
             const count = await prisma.product.count({
                 where: { category: cat.id }
             });
 
-            // "Stale" if very few items (e.g. First time setup) 
-            // OR if we wanted to enforce a time-based refresh, we could check updatedAt, 
-            // but for now, simple count is safer for quota.
-            const isStale = count < 5; // Reduced threshold to just ensuring we have SOME data to start
+            // LOGIC:
+            // 1. Global Baseline: Ensure at least 50 items exist for variety
+            // 2. On-Demand Refill: If frontend specifically asked for more of this category
+            const isStale = count < 50;
+            const forceRefresh = refreshCatId === cat.id;
 
-            if (isStale) {
+            if (isStale || forceRefresh) {
                 const randomQuery = cat.queries[Math.floor(Math.random() * cat.queries.length)];
-                console.log(`Refreshing Catalog: ${cat.label} (Count: ${count})`);
+                console.log(`Refreshing Catalog [${cat.label}]: BaselineCheck=${isStale}, ForceRefresh=${forceRefresh}, CurrentCount=${count}`);
 
                 const newProducts = await fetchFromCanopyAPI(randomQuery, cat.id);
 
                 if (newProducts && newProducts.length > 0) {
-                    // Upsert to Postgres
-                    // createMany with skipDuplicates is the most efficient way to "Seed"
                     await prisma.product.createMany({
                         data: newProducts,
                         skipDuplicates: true,
@@ -139,18 +138,8 @@ export async function GET(request: Request) {
 
                     updatesInThisRequest++;
 
-                    // Limit updates per request to save quota
-                    // If we have >= 3 populated categories in DB, stop fetching
-                    const populatedCategories = await prisma.product.groupBy({
-                        by: ['category'],
-                    });
-
-                    if (populatedCategories.length >= 3 && updatesInThisRequest >= 3) {
-                        break;
-                    }
-                    if (updatesInThisRequest >= 3) {
-                        break;
-                    }
+                    // Limit API usage inside a single user request
+                    if (updatesInThisRequest >= 2) break;
                 }
             }
         } catch (e) {

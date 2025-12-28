@@ -7,12 +7,13 @@ import { SwipeDeck, SwipeDeckRef } from '@/components/SwipeDeck';
 import { WishlistDrawer } from '@/components/WishlistDrawer';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUserData } from '@/hooks/useUserData';
-import { Menu, Heart } from 'lucide-react';
+import { Menu, Heart, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Home() {
   // State
   const [products, setProducts] = useState<Product[]>([]);
+  const [history, setHistory] = useState<Product[]>([]); // Undo History
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>({
     minPrice: 0,
@@ -36,8 +37,9 @@ export default function Home() {
   const swipeDeckRef = useRef<SwipeDeckRef>(null);
 
   // Fetch Products
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
+  const fetchProducts = useCallback(async (isAppending = false) => {
+    if (!isAppending) setLoading(true);
+
     try {
       const queryParams = new URLSearchParams({
         minPrice: filters.minPrice.toString(),
@@ -52,24 +54,60 @@ export default function Home() {
       const res = await fetch(`/api/products?${queryParams.toString()}`);
       const data = await res.json();
 
-      let filtered: Product[] = [];
       if (Array.isArray(data)) {
-        // Filter out products already in wishlist or rejected list
-        filtered = data.filter((p: Product) =>
-          !wishlist.find(w => w.id === p.id) &&
-          !rejectedIds.includes(p.id)
+        // High Performance Filtering with Sets
+        const rejectedSet = new Set(rejectedIds);
+        const wishlistSet = new Set(wishlist.map(w => w.id));
+
+        const filtered = data.filter((p: Product) =>
+          !wishlistSet.has(p.id) && !rejectedSet.has(p.id)
         );
+
+        if (isAppending) {
+          setProducts(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const uniqueNew = filtered.filter(p => !existingIds.has(p.id));
+            return [...prev, ...uniqueNew];
+          });
+        } else {
+          setProducts(filtered);
+        }
+
+        // AUTO-REFILL LOGIC
+        // If we have <= 5 fresh products left, trigger a background RESTOCK for that category
+        if (filtered.length <= 5 && !isAppending) {
+          console.log("Fresh content low, triggering background restock...");
+
+          const refillParams = new URLSearchParams(queryParams);
+          if (filters.category) {
+            refillParams.set('refreshCategory', filters.category);
+          }
+
+          fetch(`/api/products?${refillParams.toString()}`)
+            .then(res => res.json())
+            .then(newData => {
+              if (Array.isArray(newData)) {
+                const newFiltered = newData.filter((p: Product) =>
+                  !wishlistSet.has(p.id) && !rejectedSet.has(p.id)
+                );
+                setProducts(prev => {
+                  const existingIds = new Set(prev.map(p => p.id));
+                  const uniqueNew = newFiltered.filter(p => !existingIds.has(p.id));
+                  return [...prev, ...uniqueNew];
+                });
+              }
+            })
+            .catch(err => console.error("Background refill failed", err));
+        }
       } else {
         console.warn("API returned invalid data format:", data);
       }
-
-      setProducts(filtered);
     } catch (error) {
       console.error('Failed to fetch products', error);
     } finally {
-      setLoading(false);
+      if (!isAppending) setLoading(false);
     }
-  }, [filters]);
+  }, [filters, rejectedIds, wishlist, categoryScores]);
 
   useEffect(() => {
     fetchProducts();
@@ -88,20 +126,54 @@ export default function Home() {
       [product.category]: (categoryScores[product.category] || 1) + 1
     });
 
-    // Remove from main state to keep in sync
-    setProducts(prev => prev.filter(p => p.id !== product.id));
+    // Remove from main state & trigger refill if low
+    setProducts(prev => {
+      const remaining = prev.filter(p => p.id !== product.id);
+      if (remaining.length <= 5 && !loading) {
+        fetchProducts(true);
+      }
+      return remaining;
+    });
   };
 
   const handleSwipeLeft = (product: Product) => {
+    // 1. Add to local history stack
+    setHistory(prev => [...prev, product]);
+
+    // 2. Add to rejected IDs
     setRejectedIds(prev => [...prev, product.id]);
 
-    // Update Category Score (Slight penalty for noped category, but don't go below 0.1)
+    // 3. Update Category Score
     updateCategoryScores({
       ...categoryScores,
       [product.category]: Math.max((categoryScores[product.category] || 1) - 0.5, 0.1)
     });
 
-    setProducts(prev => prev.filter(p => p.id !== product.id));
+    // 4. Remove from main state & trigger refill if low
+    setProducts(prev => {
+      const remaining = prev.filter(p => p.id !== product.id);
+      if (remaining.length <= 5 && !loading) {
+        fetchProducts(true);
+      }
+      return remaining;
+    });
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+
+    const lastProduct = history[history.length - 1];
+
+    // 1. Remove from History
+    setHistory(prev => prev.slice(0, -1));
+
+    // 2. Remove from Rejected IDs (Allow it to be seen again)
+    setRejectedIds(prev => prev.filter(id => id !== lastProduct.id));
+
+    // 3. Add back to the FRONT of the product list
+    setProducts(prev => [lastProduct, ...prev]);
+
+    // 4. Optional: Revert score? (Skipping for now to keep simple)
   };
 
   const handleRemoveFromWishlist = (id: string) => {
@@ -144,6 +216,21 @@ export default function Home() {
           onSwipeRight={handleSwipeRight}
           onSwipeLeft={handleSwipeLeft}
         />
+
+        {/* Undo Button - Always visible but disabled if no history */}
+        <button
+          onClick={handleUndo}
+          disabled={history.length === 0}
+          className={cn(
+            "absolute bottom-6 left-6 p-4 rounded-full shadow-lg transition-all z-50 flex items-center justify-center",
+            history.length > 0
+              ? "bg-zinc-800 text-yellow-400 border border-yellow-400/20 hover:scale-110 active:scale-95 cursor-pointer"
+              : "bg-zinc-900/50 text-zinc-600 border border-zinc-800 cursor-not-allowed opacity-50"
+          )}
+          aria-label="Undo last nope"
+        >
+          <RotateCcw size={24} />
+        </button>
       </div>
 
       <WishlistDrawer

@@ -5,12 +5,14 @@
 ## ✨ Features
 
 -   **Tinder-style Swiping**: Use smooth, fluid gestures (Framer Motion) with visual "Like/Nope" feedback to discover interesting products.
+-   **Undo Functionality**: Made a mistake? Use the persistent **Undo Button** to bring back your last "Noped" item instantly.
 -   **Expert Discovery Filters**: Sort and filter by **Price**, **Star Rating** (4.0+, 4.5+), and **Review Count** (100+, 1k+, 5k+) to find only the best products.
 -   **Smart Content-Based Filtering**: The more you swipe, the better it gets. The app tracks your category preferences and weights your product feed accordingly.
+-   **Smart Replenishment**: An intelligent backend that monitors your local deck and personal "unseen" count to silently fetch fresh data, ensuring an infinite swipe experience.
 -   **Multi-Category Discovery**: Fetches real-time data across Tech, Home, Fashion, Wellness, Hobbies, and Workspace.
 -   **Unified Account Management**: A single profile header to manage your Google session and access your persistent wishlist.
 -   **Persistent Backend**: Powered by PostgreSQL and Prisma for fast, reliable data storage.
--   **Real-Time Data**: Integrates with the Amazon Real-Time Data API for up-to-date pricing and ratings.
+-   **Real-Time Data**: Integrates with **CanopyAPI** for high-performance Amazon product data.
 
 ## 🛠️ Technical Stack
 
@@ -47,8 +49,8 @@ NEXTAUTH_URL="http://localhost:3000"
 GOOGLE_CLIENT_ID="your_google_id"
 GOOGLE_CLIENT_SECRET="your_google_secret"
 
-# Amazon API
-RAPIDAPI_KEY="your_rapid_api_key"
+# Amazon API (CanopyAPI)
+CANOPY_API_KEY="your_canopy_api_key"
 ```
 
 ### 3. Setup

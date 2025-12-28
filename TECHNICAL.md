@@ -59,11 +59,18 @@ The app prioritizes the internal Postgres database. External API calls to Canopy
 ### 2. Global deduplication
 The app tracks `RejectedIds` (Nopes) and `WishlistIds` (Likes) to ensure that once a user has interacted with a product, it is filtered out of their feed permanently, preventing redundant "swipes."
 
-### 3. Variability & Growth (The "Vibe Catalog")
-To solve "Cache Amnesia" (Vercel resets) and "API Quota Limits," we migrated from a file-based cache to a **Persistent Database Catalog**.
--   **Permanent Library**: Products fetched from Amazon are saved to a PostgreSQL `Product` table. They persist indefinitely, building a massive library over time.
--   **Lazy Seeding**: The API only calls **CanopyAPI** if a category in the DB is "empty" (count < 5). Once seeded, it serves millions of users with **zero API costs**.
--   **Global Interleaving**: Since the DB holds all categories permanently, the "Spread Sort" algorithm now has access to a much wider pool of candidates, ensuring robust interleaving even for new users.
+### 3. Smart Replenishment (The "Infinite Feed")
+Vibe ensures users never run out of content through a proactive 2-tier replenishment system:
+-   **Global Baseline**: The API ensures every category has a minimum of **50 items** globally in the database.
+-   **User-Specific Refill**: The frontend monitors the current deck. If it detects that a user has seen or rejected almost all existing items for a category (count ≤ 5), it sends a `refreshCategory` signal to the backend.
+-   **On-Demand Fetching**: This signal forces the backend to bypass its internal database and fetch fresh data from CanopyAPI specifically for that category, ensuring the user always has "unseen" content.
+-   **O(1) Filtering**: To keep swiping snappy as "Nope" lists grow into the thousands, the app uses **Set-based deduplication** in the browser, ensuring filtering takes <1ms regardless of history size.
+
+### 4. Undo Logic
+Vibe implements a session-based **Undo** feature:
+-   **State Tracking**: Each "Nope" (Swipe Left) pushes the product onto a local `history` stack.
+-   **Inverse Op**: When "Undo" is pressed, the item is popped from the stack, removed from the `RejectedItems` list (allowing it to be visible again), and unshifted back to the front of the active `products` array.
+-   **State Management**: This is handled via high-frequency UI state updates, providing instant recovery of a missed item.
 
 ---
 
