@@ -115,6 +115,16 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
                                 <span>{product.reviews.toLocaleString()} reviews</span>
                             </>
                         )}
+                        <span>•</span>
+                        <a
+                            href={product.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-white/60 hover:text-white flex items-center gap-1 font-medium transition-colors"
+                            onPointerDown={(e) => e.stopPropagation()}
+                        >
+                            Amazon <ExternalLink size={10} />
+                        </a>
                     </div>
                 </div>
 
@@ -128,7 +138,7 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
                                         <img src={friend.image} alt={friend.name} className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-500 font-bold">
-                                            {friend.name[0]}
+                                            {friend.name?.[0]}
                                         </div>
                                     )}
                                 </div>
@@ -142,16 +152,6 @@ export function SwipeCard({ product, onSwipe, style, drag = true, custom }: Swip
                         </span>
                     </div>
                 )}
-
-                <a
-                    href={product.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-zinc-100 hover:bg-white text-black font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors mt-auto shrink-0 text-sm"
-                    onPointerDown={(e) => e.stopPropagation()} // Prevent drag when clicking button
-                >
-                    View on Amazon <ExternalLink size={16} />
-                </a>
             </div>
         </motion.div>
     );

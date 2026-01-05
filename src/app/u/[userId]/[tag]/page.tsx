@@ -84,14 +84,29 @@ export default async function SharedWishlistPage({ params }: Props) {
                                     <h3 className="font-medium text-sm line-clamp-2 mb-2 h-10">{item.title}</h3>
                                     <div className="flex items-center justify-between mt-2">
                                         <span className="text-brand font-bold">${item.price}</span>
-                                        <a
-                                            href={item.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-xs bg-white text-black px-3 py-1.5 rounded-full font-semibold hover:bg-zinc-200 transition-colors flex items-center gap-1"
-                                        >
-                                            View <ExternalLink size={10} />
-                                        </a>
+                                        <div className="flex items-center gap-2 mt-2 text-[10px] text-zinc-500">
+                                            {item.rating && (
+                                                <div className="flex items-center gap-1 text-yellow-500/80">
+                                                    <span>★</span>
+                                                    <span className="text-zinc-400">{item.rating}</span>
+                                                </div>
+                                            )}
+                                            {item.reviews && item.reviews > 0 && (
+                                                <>
+                                                    <span>•</span>
+                                                    <span>{item.reviews.toLocaleString()} reviews</span>
+                                                </>
+                                            )}
+                                            <span>•</span>
+                                            <a
+                                                href={item.link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-white/40 hover:text-white transition-colors flex items-center gap-1 font-medium underline-offset-2 hover:underline"
+                                            >
+                                                Amazon <ExternalLink size={8} />
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

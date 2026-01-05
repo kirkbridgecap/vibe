@@ -246,20 +246,44 @@ export default function WishlistPage() {
                             <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
                                 <div>
                                     <h3 className="font-semibold text-sm line-clamp-2 leading-tight mb-1 text-zinc-100">{item.title}</h3>
-                                    <p className="text-brand font-bold text-lg">
-                                        ${item.price}
-                                        <span className="text-xs font-normal text-zinc-500 ml-2 bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-700">
+                                    <p className="text-brand font-bold text-lg flex items-center justify-between">
+                                        <span>${item.price}</span>
+                                        <span className="text-[10px] font-normal text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-700">
                                             {item.category}
                                         </span>
                                     </p>
+
+                                    <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-500">
+                                        {item.rating && (
+                                            <div className="flex items-center gap-1 text-yellow-500/80">
+                                                <span>★</span>
+                                                <span className="text-zinc-400">{item.rating}</span>
+                                            </div>
+                                        )}
+                                        {item.reviews && item.reviews > 0 && (
+                                            <>
+                                                <span>•</span>
+                                                <span>{item.reviews.toLocaleString()} reviews</span>
+                                            </>
+                                        )}
+                                        <span>•</span>
+                                        <a
+                                            href={item.link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-white/40 hover:text-white transition-colors flex items-center gap-1 font-medium underline-offset-2 hover:underline"
+                                        >
+                                            Amazon <ExternalLink size={8} />
+                                        </a>
+                                    </div>
 
                                     {/* Assignment Input */}
                                     <div className="flex items-center gap-2 mt-2">
                                         <Tag size={12} className="text-zinc-500" />
                                         <input
                                             type="text"
-                                            placeholder="Tag list (e.g. Dad, Birthday)..."
-                                            className="bg-transparent text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none border-b border-transparent focus:border-zinc-700 w-full"
+                                            placeholder="Tag list..."
+                                            className="bg-transparent text-[10px] text-zinc-300 placeholder-zinc-600 focus:outline-none border-b border-transparent focus:border-zinc-700 w-full"
                                             value={assignments[item.id] || ''}
                                             onChange={(e) => assignItem(item.id, e.target.value)}
                                         />
@@ -267,19 +291,12 @@ export default function WishlistPage() {
                                 </div>
 
                                 <div className="flex items-center gap-3 mt-3 justify-end">
-                                    <a
-                                        href={item.link}
-                                        target="_blank"
-                                        rel="noopener"
-                                        className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors bg-zinc-800 px-3 py-1.5 rounded-lg"
-                                    >
-                                        <ExternalLink size={12} /> View
-                                    </a>
                                     <button
                                         onClick={() => removeFromWishlist(item.id)}
-                                        className="flex items-center gap-1 text-xs font-medium text-red-400/80 hover:text-red-400 transition-colors bg-red-400/10 px-3 py-1.5 rounded-lg"
+                                        className="text-red-400/60 hover:text-red-400 transition-colors p-1"
+                                        title="Remove from wishlist"
                                     >
-                                        <Trash2 size={12} />
+                                        <Trash2 size={14} />
                                     </button>
                                 </div>
                             </div>
