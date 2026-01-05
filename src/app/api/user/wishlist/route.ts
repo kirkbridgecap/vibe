@@ -17,21 +17,27 @@ export async function GET(request: Request) {
             orderBy: { createdAt: 'desc' }
         });
 
-        // Map back to Product type
-        const products: Product[] = wishlistItems.map(item => ({
-            id: item.productId,
-            title: item.title,
-            price: item.price,
-            currency: item.currency,
-            imageUrl: item.imageUrl,
-            link: item.link,
-            category: item.category,
-            isBestSeller: item.isBestSeller,
-            rating: item.rating || undefined,
-            reviews: item.reviews || undefined,
-        }));
+        const assignments: Record<string, string> = {};
 
-        return NextResponse.json(products);
+        const products: Product[] = wishlistItems.map(item => {
+            if (item.assignee) {
+                assignments[item.productId] = item.assignee;
+            }
+            return {
+                id: item.productId,
+                title: item.title,
+                price: item.price,
+                currency: item.currency,
+                imageUrl: item.imageUrl,
+                link: item.link,
+                category: item.category,
+                isBestSeller: item.isBestSeller,
+                rating: item.rating || undefined,
+                reviews: item.reviews || undefined,
+            };
+        });
+
+        return NextResponse.json({ products, assignments });
     } catch (error) {
         console.error("Failed to fetch wishlist", error);
         return NextResponse.json({ error: 'Database Error' }, { status: 500 });
@@ -46,11 +52,9 @@ export async function POST(request: Request) {
     }
 
     try {
-        const product: Product = await request.json();
-
-        // Upsert to avoid duplicates
-        // Note: We use composite key or just simple create/fail?
-        // Our schema has @@unique([userId, productId])
+        const body = await request.json();
+        const product: Product = body.product || body;
+        const assignee: string | undefined = body.assignee;
 
         const savedItem = await prisma.wishlistItem.upsert({
             where: {
@@ -59,7 +63,7 @@ export async function POST(request: Request) {
                     productId: product.id
                 }
             },
-            update: {}, // No updates needed if exists
+            update: assignee !== undefined ? { assignee } : {},
             create: {
                 userId: session.user.id,
                 productId: product.id,
@@ -71,7 +75,8 @@ export async function POST(request: Request) {
                 category: product.category,
                 isBestSeller: product.isBestSeller,
                 rating: product.rating,
-                reviews: product.reviews
+                reviews: product.reviews,
+                assignee: assignee
             }
         });
 
@@ -87,13 +92,14 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get('id');
     const isClear = searchParams.get('clear') === 'true';
+    const tag = searchParams.get('tag');
 
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!productId && !isClear) {
-        return NextResponse.json({ error: 'Missing ID or clear flag' }, { status: 400 });
+    if (!productId && !isClear && !tag) {
+        return NextResponse.json({ error: 'Missing ID, tag, or clear flag' }, { status: 400 });
     }
 
     try {
@@ -103,6 +109,15 @@ export async function DELETE(request: Request) {
                 where: {
                     userId: session.user.id
                 }
+            });
+        } else if (tag) {
+            // Unassign Tag
+            await prisma.wishlistItem.updateMany({
+                where: {
+                    userId: session.user.id,
+                    assignee: tag
+                },
+                data: { assignee: null }
             });
         } else if (productId) {
             // Single Delete

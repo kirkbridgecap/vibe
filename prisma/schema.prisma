@@ -82,6 +82,7 @@ model WishlistItem {
   isBestSeller Boolean  @default(false)
   rating       Float?
   reviews      Int?
+  assignee     String?  // The person or list this item is assigned to
   
   createdAt    DateTime @default(now())
 

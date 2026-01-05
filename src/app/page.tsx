@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Product, FilterState } from '@/types';
 import { StickyFilterBar } from '@/components/StickyFilterBar';
 import { SwipeDeck, SwipeDeckRef } from '@/components/SwipeDeck';
-import { WishlistDrawer } from '@/components/WishlistDrawer';
+import { ProfileDrawer } from '@/components/ProfileDrawer';
 import { MatchModal } from '@/components/MatchModal';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUserData } from '@/hooks/useUserData';
@@ -254,12 +254,9 @@ export default function Home() {
         </button>
       </div>
 
-      <WishlistDrawer
+      <ProfileDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        wishlist={wishlist}
-        onRemove={handleRemoveFromWishlist}
-        onClear={clearWishlist}
       />
 
       <MatchModal

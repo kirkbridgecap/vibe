@@ -78,15 +78,12 @@ export function StickyFilterBar({ filters, onFilterChange, onProfileClick, wishl
                     </select>
                 </div>
 
-                {/* Profile/Wishlist Button */}
+                {/* Profile Button */}
                 <button
                     onClick={onProfileClick}
                     className="relative p-2 text-zinc-400 hover:text-white transition-colors shrink-0"
                 >
                     <User size={24} />
-                    {wishlistCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-zinc-950"></span>
-                    )}
                 </button>
             </div>
         </div>
