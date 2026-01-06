@@ -2,7 +2,7 @@
 
 import { Product } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Trash2, ShoppingBag, LogOut, Users } from 'lucide-react';
+import { X, ExternalLink, Trash2, ShoppingBag, LogOut, Users, Settings } from 'lucide-react';
 import Image from 'next/image';
 import { signIn, signOut, useSession } from "next-auth/react";
 import { FriendManager } from './Social/FriendManager';
@@ -65,6 +65,9 @@ export function ProfileDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
                                             <h3 className="font-bold text-lg">{session.user?.name}</h3>
                                             <p className="text-sm text-zinc-500">{session.user?.email}</p>
                                         </div>
+                                        <a href="/settings" className="ml-auto p-2 bg-zinc-800 rounded-full hover:bg-zinc-700 transition-colors">
+                                            <Settings size={20} className="text-zinc-400" />
+                                        </a>
                                     </div>
 
                                     <div className="h-px bg-zinc-800 mb-6" />

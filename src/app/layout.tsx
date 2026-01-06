@@ -25,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={cn(inter.className, "bg-zinc-950 text-white min-h-screen flex flex-col overflow-hidden")}>
+      <body className={cn(inter.className, "bg-zinc-950 text-white min-h-screen flex flex-col")}>
         <Providers>
           {children}
           <BottomNav />

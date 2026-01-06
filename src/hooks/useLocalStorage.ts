@@ -16,6 +16,15 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         } catch (error) {
             console.warn(`Error reading localStorage key "${key}":`, error);
         }
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === key && e.newValue) {
+                setStoredValue(JSON.parse(e.newValue));
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, [key]);
 
     // Return a wrapped version of useState's setter function that persists the new value to localStorage
@@ -26,6 +35,8 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
             setStoredValue(valueToStore);
             if (typeof window !== 'undefined') {
                 window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                // Dispatch a custom event so other hooks in the same window update
+                window.dispatchEvent(new StorageEvent('storage', { key, newValue: JSON.stringify(valueToStore) }));
             }
         } catch (error) {
             console.warn(`Error setting localStorage key "${key}":`, error);

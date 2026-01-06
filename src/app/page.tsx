@@ -6,6 +6,7 @@ import { StickyFilterBar } from '@/components/StickyFilterBar';
 import { SwipeDeck, SwipeDeckRef } from '@/components/SwipeDeck';
 import { ProfileDrawer } from '@/components/ProfileDrawer';
 import { MatchModal } from '@/components/MatchModal';
+import { OnboardingOverlay } from '@/components/OnboardingOverlay';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUserData } from '@/hooks/useUserData';
 import { Menu, Heart, RotateCcw } from 'lucide-react';
@@ -265,6 +266,8 @@ export default function Home() {
         matches={matchData?.matches || []}
         productImage={matchData?.product.imageUrl || ''}
       />
+
+      <OnboardingOverlay />
     </main >
   );
 }
