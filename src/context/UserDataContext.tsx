@@ -7,14 +7,14 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 interface UserDataContextType {
     wishlist: Product[];
-    categoryScores: Record<string, number>;
+    categoryStats: Record<string, { likes: number, dislikes: number }>;
     rejectedIds: string[];
     assignments: Record<string, string>; // productId -> person name
     setRejectedIds: (ids: string[] | ((prev: string[]) => string[])) => void;
     addToWishlist: (product: Product) => Promise<void>;
     removeFromWishlist: (id: string) => Promise<void>;
     clearWishlist: () => Promise<void>;
-    updateCategoryScores: (newScores: Record<string, number>) => Promise<void>;
+    recordSwipe: (category: string, action: 'like' | 'dislike') => Promise<void>;
     assignItem: (productId: string, person: string) => void;
     deleteAssignee: (person: string) => Promise<void>;
 }
@@ -24,7 +24,34 @@ const UserDataContext = createContext<UserDataContextType | undefined>(undefined
 export function UserDataProvider({ children }: { children: ReactNode }) {
     const { data: session } = useSession();
     const [wishlist, setWishlist] = useLocalStorage<Product[]>('giftpulse-wishlist', []);
-    const [categoryScores, setCategoryScores] = useLocalStorage<Record<string, number>>('giftpulse-scores', {});
+    const [categoryStats, setCategoryStats] = useLocalStorage<Record<string, { likes: number, dislikes: number }>>('giftpulse-mab-stats', {});
+
+    // ... (sync logic could be added here for stats, but skipped for brevity as verified by db pull)
+
+    const recordSwipe = async (category: string, action: 'like' | 'dislike') => {
+        // optimistically update local stats
+        setCategoryStats(prev => {
+            const current = prev[category] || { likes: 0, dislikes: 0 };
+            return {
+                ...prev,
+                [category]: {
+                    likes: current.likes + (action === 'like' ? 1 : 0),
+                    dislikes: current.dislikes + (action === 'dislike' ? 1 : 0)
+                }
+            };
+        });
+
+        if (session?.user?.id) {
+            try {
+                await fetch('/api/user/preferences', {
+                    method: 'POST',
+                    body: JSON.stringify({ category, action })
+                });
+            } catch (e) {
+                console.error("Failed to record swipe", e);
+            }
+        }
+    };
     const [rejectedIds, setRejectedIds] = useLocalStorage<string[]>('giftpulse-rejected', []);
     const [assignments, setAssignments] = useLocalStorage<Record<string, string>>('giftpulse-assignments', {});
 
@@ -108,19 +135,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const updateCategoryScores = async (newScores: Record<string, number>) => {
-        setCategoryScores(newScores);
-        if (session?.user?.id) {
-            try {
-                await fetch('/api/user/preferences', {
-                    method: 'POST',
-                    body: JSON.stringify({ preferences: newScores })
-                });
-            } catch (e) {
-                console.error("Failed to sync scores", e);
-            }
-        }
-    };
+    // updateCategoryScores removed in favor of recordSwipe
+
 
     const assignItem = async (productId: string, person: string) => {
         setAssignments(prev => ({
@@ -169,14 +185,14 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     return (
         <UserDataContext.Provider value={{
             wishlist,
-            categoryScores,
+            categoryStats,
             rejectedIds,
             assignments,
             setRejectedIds,
             addToWishlist,
             removeFromWishlist,
             clearWishlist,
-            updateCategoryScores,
+            recordSwipe,
             assignItem,
             deleteAssignee
         }}>

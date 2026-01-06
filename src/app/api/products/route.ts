@@ -148,17 +148,38 @@ export async function GET(request: Request) {
     }
 
     // 3. QUERY CATALOG
-    // We fetch ALL candidates matching filters from the DB. 
-    // PostgreSQL handles the filtering efficiently.
+    // Fetch a LARGE pool to allow the MAB simulator to work
     let allProducts: any[] = [];
+
+    // Server-side filtering of rejected items to prevent loops
+    const excludedIds: string[] = [];
+    if (session?.user?.id) {
+        try {
+            const rejected = await prisma.rejectedItem.findMany({
+                where: { userId: session.user.id },
+                select: { productId: true }
+            });
+            rejected.forEach(r => excludedIds.push(r.productId));
+        } catch (e) {
+            console.error("Failed to fetch rejected items", e);
+        }
+    } else {
+        // Guest: Parse excludeIds from params
+        const excludeParam = searchParams.get('excludeIds');
+        if (excludeParam) {
+            excludeParam.split(',').forEach(id => excludedIds.push(id));
+        }
+    }
+
     try {
         allProducts = await prisma.product.findMany({
             where: {
                 price: { gte: minPrice, lte: maxPrice },
                 reviews: { gte: minReviews },
-                rating: { gte: minRating, lte: maxRating }
+                rating: { gte: minRating, lte: maxRating },
+                id: { notIn: excludedIds }
             },
-            take: 500 // Fetch a large candidate pool for the Spread Sort
+            take: 250 // Large pool for simulation
         });
     } catch (e) {
         console.error("Failed to query catalog", e);
@@ -166,36 +187,25 @@ export async function GET(request: Request) {
     }
 
     if (allProducts.length === 0) {
-        // Return empty array instead of 404 object to be safe for frontend
         return NextResponse.json([]);
     }
 
-    // 3.5 FETCH FRIEND ACTIONS (The "Vibe Match" Logic)
-    // We do this efficiently by fetching all friend likes in one go and mapping them.
+    // 3.5 FETCH FRIEND ACTIONS
     let friendLikesMap: Record<string, any[]> = {};
-
     if (session?.user?.id) {
         try {
-            // Get my friends
             const friends = await prisma.friendship.findMany({
                 where: { userId: session.user.id },
                 include: { friend: { select: { id: true, name: true, image: true } } }
             });
             const friendIds = friends.map(f => f.friendId);
-
             if (friendIds.length > 0) {
-                // Get all items friends have liked that are in our candidate pool (optimization: strictly we could filter by pool IDs but finding all is usually fine)
                 const friendWishlist = await prisma.wishlistItem.findMany({
                     where: { userId: { in: friendIds } },
                     include: { user: { select: { id: true, name: true, image: true } } }
                 });
-
-                // Group by Product ID
                 friendWishlist.forEach(item => {
-                    if (!friendLikesMap[item.productId]) {
-                        friendLikesMap[item.productId] = [];
-                    }
-                    // Avoid duplicates if friend swipe multiple times (unlikely but good safety)
+                    if (!friendLikesMap[item.productId]) friendLikesMap[item.productId] = [];
                     if (!friendLikesMap[item.productId].some(m => m.userId === item.userId)) {
                         friendLikesMap[item.productId].push({
                             userId: item.userId,
@@ -204,55 +214,127 @@ export async function GET(request: Request) {
                         });
                     }
                 });
-                console.log(`[VibeMatch] Found ${Object.keys(friendLikesMap).length} products with friend likes.`);
             }
         } catch (e) {
             console.error("Failed to fetch friend matches", e);
         }
     }
 
-    // 4. WEIGHTED SCORING (In-Memory)
-    const scoredProducts = allProducts.map(p => {
-        const rawWeight = userPreferences[p.category] !== undefined ? userPreferences[p.category] : 1.0;
-        const effectiveWeight = Math.log(rawWeight + Math.E);
-        const score = effectiveWeight * (Math.random() + 0.5);
+    // 4. PREPARE PREFERENCES (MAB STATS)
+    let userStats: Record<string, { likes: number, dislikes: number }> = {};
 
-        // Attach Friend Matches
-        const matches = friendLikesMap[p.id] || [];
-        if (matches.length > 0) console.log(`[VibeMatch] Product ${p.id} has ${matches.length} matches.`);
+    if (session?.user?.id) {
+        try {
+            const dbScores = await prisma.categoryScore.findMany({
+                where: { userId: session.user.id }
+            });
+            dbScores.forEach((s: any) => {
+                userStats[s.category] = { likes: s.likes || 0, dislikes: s.dislikes || 0 };
+            });
+        } catch (e) {
+            console.error("Failed to fetch MAB stats from DB", e);
+        }
+    } else {
+        // Guest: Parse from params (expecting JSON of { category: {likes, dislikes} })
+        try {
+            const prefParam = searchParams.get('preferences');
+            if (prefParam) {
+                userStats = JSON.parse(prefParam);
+            }
+        } catch (e) {
+            console.warn("Failed to parse guest MAB stats", e);
+        }
+    }
 
-        const enrichedProduct = { ...p, friendMatches: matches };
+    // 5. THOMPSON SAMPLING FEED CONSTRUCTION
 
-        return { product: enrichedProduct, score };
+    // Attach friend matches first
+    const enrichedPool = allProducts.map(p => ({
+        ...p,
+        friendMatches: friendLikesMap[p.id] || []
+    }));
+
+    // Buckets
+    const poolByCategory: Record<string, any[]> = {};
+    CATEGORIES.forEach(c => poolByCategory[c.id] = []);
+    enrichedPool.forEach(p => {
+        if (poolByCategory[p.category]) poolByCategory[p.category].push(p);
     });
 
-    // Sort by score descending (Candidates List)
-    scoredProducts.sort((a, b) => b.score - a.score);
+    // Shuffle buckets (or sort by rating/popularity to give best items first)
+    Object.values(poolByCategory).forEach(bucket => {
+        // Sort by Rating Descending + Random Noise to keep it fresh
+        bucket.sort((a, b) => (b.rating + Math.random()) - (a.rating + Math.random()));
+    });
 
-    // 5. SPREAD SORT (Smart Interleaving)
-    const finalProducts: any[] = [];
-    let pool = [...scoredProducts];
-    let lastCategory: string | null = null;
+    // Helper: Gamma Sampler for Beta Distribution
+    const sampleBeta = (alpha: number, beta: number) => {
+        const gamma = (k: number) => {
+            let s = 0;
+            for (let i = 0; i < k; i++) s -= Math.log(Math.random());
+            return s;
+        };
+        const ga = gamma(Math.max(1, Math.floor(alpha))); // Ensure integer >= 1
+        const gb = gamma(Math.max(1, Math.floor(beta)));
+        return ga / (ga + gb);
+    };
 
-    while (pool.length > 0) {
-        let selectedIndex = -1;
-        const lookahead = Math.min(pool.length, 20); // Deep lookahead
+    const finalFeed: any[] = [];
+    const feedSize = 50;
 
-        for (let i = 0; i < lookahead; i++) {
-            if (pool[i].product.category !== lastCategory) {
-                selectedIndex = i;
-                break;
+    for (let i = 0; i < feedSize; i++) {
+        let selectedCategory = '';
+        const isDiscoverySlot = (i % 5 === 0); // 20% slots
+
+        // Capping: Max 2 of same category in last 5 items
+        const isCapped = (cat: string) => {
+            const recent = finalFeed.slice(Math.max(0, finalFeed.length - 4));
+            return recent.filter(p => p.category === cat).length >= 2;
+        };
+
+        if (isDiscoverySlot) {
+            // 80/20 Rule: Pick random available category that isn't capped
+            // Filter categories that have items and aren't capped
+            const candidates = CATEGORIES.filter(c => poolByCategory[c.id].length > 0 && !isCapped(c.id));
+            if (candidates.length > 0) {
+                selectedCategory = candidates[Math.floor(Math.random() * candidates.length)].id;
             }
         }
 
-        if (selectedIndex === -1) selectedIndex = 0;
+        if (!selectedCategory) {
+            // Thompson Sampling
+            let bestScore = -1;
+            const candidates = CATEGORIES.filter(c => poolByCategory[c.id].length > 0 && !isCapped(c.id));
 
-        const selected = pool[selectedIndex];
-        finalProducts.push(selected.product);
-        lastCategory = selected.product.category;
+            // Shuffle candidates needed? No, max search handles it, but ties?
+            // sampleBeta is continuous so ties unlikely.
 
-        pool.splice(selectedIndex, 1);
+            for (const cat of candidates) {
+                const stats = userStats[cat.id] || { likes: 0, dislikes: 0 };
+
+                // Alpha = likes + 1, Beta = dislikes + 1
+                const score = sampleBeta(stats.likes + 1, stats.dislikes + 1);
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    selectedCategory = cat.id;
+                }
+            }
+        }
+
+        // Fallback (if all capped or exhausted)
+        if (!selectedCategory) {
+            const available = CATEGORIES.find(c => poolByCategory[c.id].length > 0);
+            if (available) selectedCategory = available.id;
+        }
+
+        if (selectedCategory) {
+            const product = poolByCategory[selectedCategory].shift();
+            if (product) finalFeed.push(product);
+        } else {
+            break; // No more items
+        }
     }
 
-    return NextResponse.json(finalProducts);
+    return NextResponse.json(finalFeed);
 }

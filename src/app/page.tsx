@@ -8,7 +8,7 @@ import { ProfileDrawer } from '@/components/ProfileDrawer';
 import { MatchModal } from '@/components/MatchModal';
 import { OnboardingOverlay } from '@/components/OnboardingOverlay';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { useUserData } from '@/hooks/useUserData';
+import { useUserData } from '@/context/UserDataContext';
 import { Menu, Heart, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,13 +27,13 @@ export default function Home() {
 
   const {
     wishlist,
-    categoryScores,
+    categoryStats,
     rejectedIds,
     setRejectedIds,
     addToWishlist,
     removeFromWishlist,
     clearWishlist,
-    updateCategoryScores
+    recordSwipe
   } = useUserData();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -42,12 +42,12 @@ export default function Home() {
   const swipeDeckRef = useRef<SwipeDeckRef>(null);
   const rejectedIdsRef = useRef(rejectedIds);
   const wishlistRef = useRef(wishlist);
-  const categoryScoresRef = useRef(categoryScores);
+  const categoryStatsRef = useRef(categoryStats);
 
   // Sync refs with state
   useEffect(() => { rejectedIdsRef.current = rejectedIds; }, [rejectedIds]);
   useEffect(() => { wishlistRef.current = wishlist; }, [wishlist]);
-  useEffect(() => { categoryScoresRef.current = categoryScores; }, [categoryScores]);
+  useEffect(() => { categoryStatsRef.current = categoryStats; }, [categoryStats]);
 
   // Fetch Products
   const fetchProducts = useCallback(async (isAppending = false) => {
@@ -55,14 +55,14 @@ export default function Home() {
 
     try {
       // Use Ref values to avoid closure dependencies and redundant re-fetches
-      const currentScores = categoryScoresRef.current;
+      const currentStats = categoryStatsRef.current;
       const currentRejected = rejectedIdsRef.current;
       const currentWishlist = wishlistRef.current;
 
       const queryParams = new URLSearchParams({
         minPrice: filters.minPrice.toString(),
         maxPrice: filters.maxPrice.toString(),
-        preferences: JSON.stringify(currentScores),
+        preferences: JSON.stringify(currentStats),
       });
       if (filters.category) queryParams.set('category', filters.category);
       if (filters.minReviews) queryParams.set('minReviews', filters.minReviews.toString());
@@ -92,7 +92,7 @@ export default function Home() {
         }
 
         // AUTO-REFILL LOGIC
-        if (filtered.length <= 5 && !isAppending) {
+        if (filtered.length <= 10 && !isAppending) {
           console.log("Fresh content low, triggering background restock...");
 
           const refillParams = new URLSearchParams(queryParams);
@@ -137,11 +137,8 @@ export default function Home() {
       addToWishlist(product);
     }
 
-    // Update Category Score (Boost liked category)
-    updateCategoryScores({
-      ...categoryScores,
-      [product.category]: (categoryScores[product.category] || 1) + 1
-    });
+    // Record Swipe (MAB Update)
+    recordSwipe(product.category, 'like');
 
     // Vibe Match Logic
     if (product.friendMatches && product.friendMatches.length > 0) {
@@ -151,7 +148,7 @@ export default function Home() {
     // Remove from main state & trigger refill if low
     setProducts(prev => {
       const remaining = prev.filter(p => p.id !== product.id);
-      if (remaining.length <= 5 && !loading) {
+      if (remaining.length <= 10 && !loading) {
         fetchProducts(true);
       }
       return remaining;
@@ -165,16 +162,13 @@ export default function Home() {
     // 2. Add to rejected IDs
     setRejectedIds(prev => [...prev, product.id]);
 
-    // 3. Update Category Score
-    updateCategoryScores({
-      ...categoryScores,
-      [product.category]: Math.max((categoryScores[product.category] || 1) - 0.5, 0.1)
-    });
+    // 3. Record Swipe
+    recordSwipe(product.category, 'dislike');
 
     // 4. Remove from main state & trigger refill if low
     setProducts(prev => {
       const remaining = prev.filter(p => p.id !== product.id);
-      if (remaining.length <= 5 && !loading) {
+      if (remaining.length <= 10 && !loading) {
         fetchProducts(true);
       }
       return remaining;

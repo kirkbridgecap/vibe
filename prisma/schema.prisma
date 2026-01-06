@@ -96,6 +96,8 @@ model CategoryScore {
   userId    String
   category  String
   score     Float  @default(1.0)
+  likes     Int    @default(0)
+  dislikes  Int    @default(0)
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

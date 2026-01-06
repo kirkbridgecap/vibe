@@ -11,30 +11,48 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { preferences } = await request.json(); // Expected: Record<string, number>
+        const body = await request.json();
+        const { category, action } = body;
 
-        if (!preferences) {
-            return NextResponse.json({ error: 'Missing preferences' }, { status: 400 });
+        if (!category || !action) {
+            return NextResponse.json({ error: 'Missing category or action' }, { status: 400 });
         }
 
-        const updates = Object.entries(preferences).map(([category, score]) => {
-            return prisma.categoryScore.upsert({
+        if (action === 'like') {
+            await prisma.categoryScore.upsert({
                 where: {
                     userId_category: {
                         userId: session.user.id,
                         category: category
                     }
                 },
-                update: { score: Number(score) },
+                update: { likes: { increment: 1 } },
                 create: {
                     userId: session.user.id,
                     category: category,
-                    score: Number(score)
+                    score: 1.0,
+                    likes: 1,
+                    dislikes: 0
                 }
             });
-        });
-
-        await prisma.$transaction(updates);
+        } else if (action === 'dislike') {
+            await prisma.categoryScore.upsert({
+                where: {
+                    userId_category: {
+                        userId: session.user.id,
+                        category: category
+                    }
+                },
+                update: { dislikes: { increment: 1 } },
+                create: {
+                    userId: session.user.id,
+                    category: category,
+                    score: 1.0,
+                    likes: 0,
+                    dislikes: 1
+                }
+            });
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {
